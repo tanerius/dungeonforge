@@ -1,0 +1,2 @@
+go get github.com/google/uuid
+go get go.mongodb.org/mongo-driver/mongo
