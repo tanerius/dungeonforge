@@ -19,3 +19,14 @@
 
 # Go workspace file
 go.work
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+.env
+.idea/*
+.vscode/*
+cmd/owndnd/owndnd
+main
+bin/tales
+out.json
+dialog1.json
