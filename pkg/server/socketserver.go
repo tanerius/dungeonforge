@@ -11,11 +11,13 @@ import (
 )
 
 type SocketServer struct {
+	server   *gameServer
 	upgrader websocket.Upgrader
 }
 
 func NewSocketServer() *SocketServer {
 	return &SocketServer{
+		server: &gameServer{},
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
