@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package messages;
+option go_package = "github.com/tanerius/dungeonforge/pkg/messages";
+
+message Person {
+  string name = 1;
+  int32 age = 2;
+}

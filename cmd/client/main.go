@@ -3,6 +3,8 @@ package main
 import (
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
+	"google.golang.org/protobuf/proto"
 )
 
 const wsServerEndpoont = "ws://localhost:40000/ws"
@@ -25,12 +27,18 @@ func main() {
 
 	defer conn.Close()
 
-	msg := Client{
-		Name: "Taner",
-		Id:   12,
+	msg := &messages.Person{
+		Name: *proto.String("Tanerius"),
+		Age:  *proto.Int32(45),
 	}
 
-	if err := conn.WriteJSON(msg); err != nil {
+	log.Println(msg.String())
+
+	data, _ := proto.Marshal(msg)
+
+	log.Printf("Marshalled data: %s ", data)
+
+	if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 		log.Fatal(err)
 	}
 

@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/gorilla/websocket"
 )
@@ -37,5 +39,22 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("New client trying to connect")
-	log.Print(c)
+
+	_, data, err := c.ReadMessage()
+
+	if err != nil {
+		log.Error("read message * ", err)
+		return
+	}
+
+	var m *messages.Person = &messages.Person{}
+
+	err = proto.Unmarshal(data, m)
+
+	if err != nil {
+		log.Error("unmarshal * ", err)
+		return
+	}
+
+	log.Printf("Name: %s *** Age: %d", m.GetName(), m.GetAge())
 }
