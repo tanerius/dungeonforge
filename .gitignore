@@ -27,6 +27,6 @@ go.work
 .vscode/*
 cmd/owndnd/owndnd
 main
-bin/tales
+bin/*
 out.json
 dialog1.json
