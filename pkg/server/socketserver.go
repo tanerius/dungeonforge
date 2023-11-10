@@ -38,6 +38,8 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer c.Close()
+
 	log.Println("New client trying to connect")
 
 	_, data, err := c.ReadMessage()
