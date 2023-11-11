@@ -5,6 +5,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
+	"google.golang.org/protobuf/proto"
 )
 
 const wsServerEndpoont = "ws://localhost:40000/ws"
@@ -25,23 +27,29 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defer conn.Close()
-	/*
-		msg := &messages.Person{
-			Name: *proto.String("Tanerius"),
-			Age:  *proto.Int32(45),
+	cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
+
+	defer func() {
+		if err := conn.WriteMessage(websocket.CloseMessage, cm); err != nil {
+			log.Printf("client: %v ", err)
 		}
+		conn.Close()
+	}()
 
-		log.Println(msg.String())
+	msg := &messages.Person{
+		Name: *proto.String("Tanerius"),
+		Age:  *proto.Int32(45),
+	}
 
-		data, _ := proto.Marshal(msg)
+	log.Println(msg.String())
 
-		log.Printf("Marshalled data: %s ", data)
+	data, _ := proto.Marshal(msg)
 
-		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
-			log.Fatal(err)
-		}
-	*/
+	log.Printf("Marshalled data: %s ", data)
+
+	if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+		log.Fatal(err)
+	}
 
 	duration := time.Duration(3) * time.Second
 	time.Sleep(duration)

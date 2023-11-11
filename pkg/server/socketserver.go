@@ -27,14 +27,14 @@ func NewSocketServer(_gs *GameServer, _c *Coordinator) *SocketServer {
 
 func (s *SocketServer) StartHTTPServer() {
 	go func() {
-		log.Println("Starting HTTP server on port 40000 ...")
+		log.Println("SocketServer * Starting HTTP server on port 40000 ...")
 		http.HandleFunc("/ws", s.handleWebSocket)
 		http.ListenAndServe(":40000", nil)
 	}()
 }
 
 func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	log.Println("New client trying to connect...")
+	log.Println("SocketServer * New client trying to connect ...")
 	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error("upgrade * ", err)
@@ -42,25 +42,29 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playerConnection := newConnection(c)
+	log.Println("SocketServer * Registering new client ...")
 	s.coord.register <- playerConnection
 
 	// Handle incoming messages from the player.
 	go func() {
 		defer func() {
+			log.Printf("SocketServer * Deregistering client %s \n", playerConnection.entityId.String())
 			s.coord.unregister <- playerConnection
-			playerConnection.cn.Close()
 		}()
 
 		for {
 			// Read messages from the player and handle them as needed.
 			_, message, err := playerConnection.cn.ReadMessage()
 			if err != nil {
-				log.Println(err)
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseMessage) {
+					log.Printf("Client closed connection: %v ", err)
+				} else {
+					log.Printf("error: %v", err)
+				}
 				return
 			}
 
-			// Process player input, update game state, and send responses.
-			// Example: player.conn.WriteMessage(websocket.TextMessage, responseBytes)
+			log.Printf("SocketServer * Got message from client %s \n", playerConnection.entityId.String())
 
 			// Send the received message to the game loop for processing.
 			s.coord.playerMessages <- message

@@ -30,15 +30,16 @@ func (gs *GameServer) Run() {
 			// Perform game logic here.
 			// Update player data, calculate resources, etc.
 			// Send game updates to connected players via their player.conn.
+		/*
 
-		case c := <-gs.gameCoord.register:
-			// A new player has connected, you can perform any initialization here.
-			log.Println("New player connected. " + c.entityId.String())
+			case c := <-gs.gameCoord.register:
+				// A new player has connected, you can perform any initialization here.
+				log.Println("New player connected. " + c.entityId.String())
 
-		case c := <-gs.gameCoord.unregister:
-			// A player has disconnected, you can perform any cleanup here.
-			log.Println("Player disconnected. " + c.entityId.String())
-
+			case c := <-gs.gameCoord.unregister:
+				// A player has disconnected, you can perform any cleanup here.
+				log.Println("Player disconnected. " + c.entityId.String())
+		*/
 		case playerMessage := <-gs.gameCoord.playerMessages:
 			// Handle player messages here.
 			// Example: Log the received message.
