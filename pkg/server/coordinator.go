@@ -1,0 +1,34 @@
+package server
+
+// This is the connection coordinator responsible for leeping connection pools synced
+type Coordinator struct {
+	activeConnections connections
+	register          chan *connection
+	unregister        chan *connection
+	playerMessages    chan []byte
+}
+
+// Create a new Coordinator
+func NewCoordinator() *Coordinator {
+	return &Coordinator{
+		activeConnections: make(connections),
+		register:          make(chan *connection),
+		unregister:        make(chan *connection),
+		playerMessages:    make(chan []byte),
+	}
+}
+
+// Run the Coordinator
+func (hub *Coordinator) Run() {
+	for {
+		select {
+		case c := <-hub.register:
+			hub.activeConnections[c.entityId] = c
+		case c := <-hub.unregister:
+			if _, ok := hub.activeConnections[c.entityId]; ok {
+				delete(hub.activeConnections, c.entityId)
+				c.cn.Close()
+			}
+		}
+	}
+}

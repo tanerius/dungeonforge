@@ -1,10 +1,10 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/messages"
-	"google.golang.org/protobuf/proto"
 )
 
 const wsServerEndpoont = "ws://localhost:40000/ws"
@@ -26,21 +26,25 @@ func main() {
 	}
 
 	defer conn.Close()
+	/*
+		msg := &messages.Person{
+			Name: *proto.String("Tanerius"),
+			Age:  *proto.Int32(45),
+		}
 
-	msg := &messages.Person{
-		Name: *proto.String("Tanerius"),
-		Age:  *proto.Int32(45),
-	}
+		log.Println(msg.String())
 
-	log.Println(msg.String())
+		data, _ := proto.Marshal(msg)
 
-	data, _ := proto.Marshal(msg)
+		log.Printf("Marshalled data: %s ", data)
 
-	log.Printf("Marshalled data: %s ", data)
+		if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+			log.Fatal(err)
+		}
+	*/
 
-	if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
-		log.Fatal(err)
-	}
+	duration := time.Duration(3) * time.Second
+	time.Sleep(duration)
 
 	log.Println("Client succesfully connected!")
 }

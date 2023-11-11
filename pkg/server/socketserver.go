@@ -4,20 +4,20 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/messages"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/gorilla/websocket"
 )
 
 type SocketServer struct {
-	server   *gameServer
+	server   *GameServer
+	coord    *Coordinator
 	upgrader websocket.Upgrader
 }
 
-func NewSocketServer() *SocketServer {
+func NewSocketServer(_gs *GameServer, _c *Coordinator) *SocketServer {
 	return &SocketServer{
-		server: &gameServer{},
+		server: _gs,
+		coord:  _c,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -34,31 +34,36 @@ func (s *SocketServer) StartHTTPServer() {
 }
 
 func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
+	log.Println("New client trying to connect...")
 	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Error("upgrade * ", err)
 		return
 	}
 
-	defer c.Close()
+	playerConnection := newConnection(c)
+	s.coord.register <- playerConnection
 
-	log.Println("New client trying to connect")
+	// Handle incoming messages from the player.
+	go func() {
+		defer func() {
+			s.coord.unregister <- playerConnection
+			playerConnection.cn.Close()
+		}()
 
-	_, data, err := c.ReadMessage()
+		for {
+			// Read messages from the player and handle them as needed.
+			_, message, err := playerConnection.cn.ReadMessage()
+			if err != nil {
+				log.Println(err)
+				return
+			}
 
-	if err != nil {
-		log.Error("read message * ", err)
-		return
-	}
+			// Process player input, update game state, and send responses.
+			// Example: player.conn.WriteMessage(websocket.TextMessage, responseBytes)
 
-	var m *messages.Person = &messages.Person{}
-
-	err = proto.Unmarshal(data, m)
-
-	if err != nil {
-		log.Error("unmarshal * ", err)
-		return
-	}
-
-	log.Printf("Name: %s *** Age: %d", m.GetName(), m.GetAge())
+			// Send the received message to the game loop for processing.
+			s.coord.playerMessages <- message
+		}
+	}()
 }
