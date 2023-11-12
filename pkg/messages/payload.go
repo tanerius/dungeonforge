@@ -11,10 +11,6 @@ const (
 
 type CmdData interface{}
 
-type Data1 struct {
-	Id int `json:"id"`
-}
-
 type Payload struct {
 	Token string  `json:"token"`
 	Seq   int64   `json:"sqeuence"`

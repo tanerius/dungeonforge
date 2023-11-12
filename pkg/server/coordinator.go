@@ -7,18 +7,18 @@ import (
 
 // This is the connection coordinator responsible for leeping connection pools synced
 type Coordinator struct {
-	activeConnections connections
-	register          chan *connection
-	unregister        chan *connection
+	activeConnections clients
+	register          chan *client
+	unregister        chan *client
 	playerMessages    chan *messages.Payload
 }
 
 // Create a new Coordinator
 func NewCoordinator() *Coordinator {
 	return &Coordinator{
-		activeConnections: make(connections),
-		register:          make(chan *connection),
-		unregister:        make(chan *connection),
+		activeConnections: make(clients),
+		register:          make(chan *client),
+		unregister:        make(chan *client),
 		playerMessages:    make(chan *messages.Payload),
 	}
 }
