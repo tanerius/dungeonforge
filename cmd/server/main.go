@@ -9,7 +9,7 @@ func main() {
 	var gameServer *server.GameServer = server.NewGameServer(coordinator)
 	go gameServer.Run()
 
-	var server *server.SocketServer = server.NewSocketServer(gameServer, coordinator)
+	var server *server.SocketServer = server.NewSocketServer(coordinator)
 
 	server.StartHTTPServer()
 	select {}

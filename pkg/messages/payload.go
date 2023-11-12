@@ -3,12 +3,12 @@ package messages
 type Command string
 
 const (
-	CmdPing    Command = "ping"    // ping
-	CmdPong    Command = "pong"    // pong
-	CmdGetChar Command = "getchar" // get character and coplayers
-	CmdLvlUp   Command = "lvlup"   // level up a character trait
+	CmdPing    Command = "ping" // ping network specific
+	CmdPong    Command = "pong" // pong network specific
+	CmdGetChar Command = "exec" // execute a game specific command
 )
 
+// Game Specific data
 type CmdData interface{}
 
 type Payload struct {

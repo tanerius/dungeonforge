@@ -8,19 +8,19 @@ import (
 	gameLoop "github.com/kutase/go-gameloop"
 )
 
-type GameServer struct {
+type DongeonForge struct {
 	gl        *gameLoop.GameLoop
 	gameCoord *Coordinator
 }
 
-func NewGameServer(_c *Coordinator) *GameServer {
-	return &GameServer{
+func NewGameServer(_c *Coordinator) *DongeonForge {
+	return &DongeonForge{
 		gl:        nil,
 		gameCoord: _c,
 	}
 }
 
-func (gs *GameServer) Run() {
+func (gs *DongeonForge) Run() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
