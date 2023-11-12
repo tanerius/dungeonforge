@@ -1,13 +1,16 @@
 package server
 
-import log "github.com/sirupsen/logrus"
+import (
+	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
+)
 
 // This is the connection coordinator responsible for leeping connection pools synced
 type Coordinator struct {
 	activeConnections connections
 	register          chan *connection
 	unregister        chan *connection
-	playerMessages    chan []byte
+	playerMessages    chan *messages.Payload
 }
 
 // Create a new Coordinator
@@ -16,7 +19,7 @@ func NewCoordinator() *Coordinator {
 		activeConnections: make(connections),
 		register:          make(chan *connection),
 		unregister:        make(chan *connection),
-		playerMessages:    make(chan []byte),
+		playerMessages:    make(chan *messages.Payload),
 	}
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -36,18 +37,36 @@ func main() {
 		conn.Close()
 	}()
 
-	msg := &messages.Person{
+	msgProto := &messages.Person{
 		Name: *proto.String("Tanerius"),
 		Age:  *proto.Int32(45),
 	}
 
-	log.Println(msg.String())
+	msgJson := &messages.PersonJson{
+		Name: "Taner JSON",
+		Age:  45,
+	}
 
-	data, _ := proto.Marshal(msg)
+	jsonData, _ := json.Marshal(msgJson)
+	data, _ := proto.Marshal(msgProto)
+
+	log.Println("Binary data: ")
+	log.Println(msgProto.String())
+	log.Println("Json data: ")
+	log.Println(msgJson)
 
 	log.Printf("Marshalled data: %s ", data)
+	log.Printf("Marshalled json data: %s ", jsonData)
 
-	if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+	//if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+	//	log.Fatal(err)
+	//}
+
+	if err := conn.WriteJSON(messages.XData); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := conn.WriteJSON(messages.YData); err != nil {
 		log.Fatal(err)
 	}
 

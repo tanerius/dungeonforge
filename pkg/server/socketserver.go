@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
 
 	"github.com/gorilla/websocket"
 )
@@ -54,7 +55,9 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 		for {
 			// Read messages from the player and handle them as needed.
-			_, message, err := playerConnection.cn.ReadMessage()
+			// _, message, err := playerConnection.cn.ReadMessage() // Use for protobuff
+			var message messages.Payload
+			err := playerConnection.cn.ReadJSON(&message)
 			if err != nil {
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseMessage) {
 					log.Printf("Client closed connection: %v ", err)
@@ -67,7 +70,7 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 			log.Printf("SocketServer * Got message from client %s \n", playerConnection.entityId.String())
 
 			// Send the received message to the game loop for processing.
-			s.coord.playerMessages <- message
+			s.coord.playerMessages <- &message
 		}
 	}()
 }

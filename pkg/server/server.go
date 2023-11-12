@@ -43,7 +43,9 @@ func (gs *GameServer) Run() {
 		case playerMessage := <-gs.gameCoord.playerMessages:
 			// Handle player messages here.
 			// Example: Log the received message.
-			log.Printf("Received message from player: %s\n", playerMessage)
+
+			log.Printf("Gameserver received message from player: %v\n", playerMessage)
+
 		}
 	}
 }
