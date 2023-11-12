@@ -21,19 +21,3 @@ type Payload struct {
 	Cmd   Command `json:"cmd"`
 	Data  CmdData `json:"data,omitempty"`
 }
-
-var XData Payload = Payload{
-	Token: "x",
-	Seq:   33,
-	Cmd:   CmdPing,
-}
-
-var YData Payload = Payload{
-	Token: "y",
-	Seq:   33,
-	Cmd:   CmdLvlUp,
-	Data: PersonJson{
-		Name: "Tanerius",
-		Age:  45,
-	},
-}

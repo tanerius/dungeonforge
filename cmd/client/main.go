@@ -18,6 +18,22 @@ type Client struct {
 }
 
 func main() {
+	var XData messages.Payload = messages.Payload{
+		Token: "x",
+		Seq:   33,
+		Cmd:   messages.CmdPing,
+	}
+
+	var YData messages.Payload = messages.Payload{
+		Token: "y",
+		Seq:   33,
+		Cmd:   messages.CmdLvlUp,
+		Data: messages.PersonJson{
+			Name: "Tanerius",
+			Age:  45,
+		},
+	}
+
 	dialer := websocket.Dialer{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
@@ -62,11 +78,11 @@ func main() {
 	//	log.Fatal(err)
 	//}
 
-	if err := conn.WriteJSON(messages.XData); err != nil {
+	if err := conn.WriteJSON(XData); err != nil {
 		log.Fatal(err)
 	}
 
-	if err := conn.WriteJSON(messages.YData); err != nil {
+	if err := conn.WriteJSON(YData); err != nil {
 		log.Fatal(err)
 	}
 
