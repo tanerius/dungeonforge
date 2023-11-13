@@ -19,7 +19,6 @@ type Coordinator struct {
 	unregister        chan *client
 	playerMessages    chan *messages.Payload
 	gameServer        *GameServer
-	playerToClient    map[PlayerID]uuid.UUID
 }
 
 // Create a new Coordinator
@@ -49,5 +48,6 @@ func (hub *Coordinator) Run() {
 				c.cn.Close()
 			}
 		}
+
 	}
 }
