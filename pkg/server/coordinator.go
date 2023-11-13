@@ -6,6 +6,8 @@ import (
 	"github.com/tanerius/dungeonforge/pkg/messages"
 )
 
+type PlayerID string
+
 // This is the connection coordinator responsible for keeping connection pools synced to a game server.
 // A game coordinator controls player pools for a given server.
 // This can be distributed.
@@ -17,6 +19,7 @@ type Coordinator struct {
 	unregister        chan *client
 	playerMessages    chan *messages.Payload
 	gameServer        *GameServer
+	playerToClient    map[PlayerID]uuid.UUID
 }
 
 // Create a new Coordinator

@@ -17,6 +17,7 @@ type client struct {
 	toSend          chan *messages.Response // responses sent to users
 	closeRequested  bool
 	mu              sync.Mutex
+	isValidated     bool
 }
 
 type clients map[uuid.UUID]*client
@@ -26,6 +27,7 @@ func newConnection(_c *websocket.Conn) *client {
 		clientId:       uuid.New(),
 		cn:             _c,
 		closeRequested: false,
+		isValidated:    false,
 	}
 }
 
@@ -33,6 +35,16 @@ func newConnection(_c *websocket.Conn) *client {
 func (c *client) activateClientOnGameserver() {
 	go c.writePump()
 	go c.readPump()
+}
+
+// use to send messages to client from outside
+// TODO: use context here to timeout the messasge
+func (c *client) SendMessage(_m *messages.Response) {
+	if !c.isValidated {
+		return
+	}
+
+	c.toSend <- _m
 }
 
 // readPump pumps messages from the websocket connection to the game coordinator.
@@ -61,6 +73,16 @@ func (c *client) readPump() {
 			}
 			break
 		}
+		// Append the UUID
+		message.ClientId = c.clientId
+
+		if !c.isValidated {
+			if message.Cmd != messages.CmdValidate || message.Seq != 1 {
+				break // disconnect this client
+			}
+			// TODO: send to a validation channel on coordinator
+		}
+
 		// SEND THE MESSAGE TO game
 		c.gameCoordinator.playerMessages <- message
 	}
@@ -85,16 +107,20 @@ func (c *client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.toSend:
-			if !ok {
-				// The hub closed the channel.
-				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
-				c.cn.WriteMessage(websocket.CloseMessage, cm)
-				return
-			}
+			// Never sent messages to an unvalidated client
+			if c.isValidated {
 
-			if err := c.cn.WriteJSON(message); err != nil {
-				log.Error(err)
-				return
+				if !ok {
+					// The hub closed the channel.
+					cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
+					c.cn.WriteMessage(websocket.CloseMessage, cm)
+					return
+				}
+
+				if err := c.cn.WriteJSON(message); err != nil {
+					log.Error(err)
+					return
+				}
 			}
 		}
 	}
