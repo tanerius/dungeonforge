@@ -73,8 +73,6 @@ func (c *client) readPump() {
 			}
 			break
 		}
-		// Append the UUID
-		message.ClientId = c.clientId
 
 		if !c.isValidated {
 			if message.Cmd != messages.CmdValidate || message.Seq != 1 {
@@ -82,6 +80,9 @@ func (c *client) readPump() {
 			}
 			// TODO: send to a validation channel on coordinator
 		}
+
+		// Append the UUID
+		message.ClientId = c.clientId
 
 		// SEND THE MESSAGE TO game
 		c.gameCoordinator.playerMessages <- message
