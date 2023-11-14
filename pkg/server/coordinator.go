@@ -17,7 +17,7 @@ type coordinator struct {
 	activeConnections clients
 	register          chan *client
 	unregister        chan *client
-	playerMessages    chan *messages.Payload
+	playerMessage     chan *messages.Payload
 }
 
 // Create a new Coordinator
@@ -27,7 +27,7 @@ func newCoordinator() *coordinator {
 		activeConnections: make(clients),
 		register:          make(chan *client),
 		unregister:        make(chan *client),
-		playerMessages:    make(chan *messages.Payload),
+		playerMessage:     make(chan *messages.Payload),
 	}
 }
 
