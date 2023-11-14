@@ -12,35 +12,34 @@ type PlayerID string
 // A game coordinator controls player pools for a given server.
 // This can be distributed.
 // If coordinator dies, all users connected to italso disconnect from the game.
-type Coordinator struct {
+type coordinator struct {
 	id                uuid.UUID
 	activeConnections clients
 	register          chan *client
 	unregister        chan *client
 	playerMessages    chan *messages.Payload
-	gameServer        *GameServer
 }
 
 // Create a new Coordinator
-func NewCoordinator(_forGameServer *GameServer) *Coordinator {
-	return &Coordinator{
+func newCoordinator() *coordinator {
+	return &coordinator{
 		id:                uuid.New(), // handle this in case of panic
 		activeConnections: make(clients),
 		register:          make(chan *client),
 		unregister:        make(chan *client),
 		playerMessages:    make(chan *messages.Payload),
-		gameServer:        _forGameServer,
 	}
 }
 
 // Run the Coordinator
-func (hub *Coordinator) Run() {
+func (hub *coordinator) Run() {
+	log.Println("coordinator * started")
 	for {
 		select {
 		case c := <-hub.register:
 			log.Printf("Coordinator * Client %s connected \n", c.clientId.String())
 			hub.activeConnections[c.clientId] = c
-			c.activateClientOnGameserver()
+			c.activateClientOnGameserver(hub)
 		case c := <-hub.unregister:
 			if _, ok := hub.activeConnections[c.clientId]; ok {
 				log.Printf("Coordinator * Disconnecting %s \n", c.clientId.String())

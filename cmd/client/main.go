@@ -20,14 +20,14 @@ type Client struct {
 func main() {
 	var XData messages.Payload = messages.Payload{
 		Token: "x",
-		Seq:   33,
+		Seq:   1,
 		Cmd:   messages.CmdPing,
 	}
 
 	var YData messages.Payload = messages.Payload{
 		Token: "y",
-		Seq:   33,
-		Cmd:   messages.CmdLvlUp,
+		Seq:   1,
+		Cmd:   messages.CmdValidate,
 		Data: messages.PersonJson{
 			Name: "Tanerius",
 			Age:  45,

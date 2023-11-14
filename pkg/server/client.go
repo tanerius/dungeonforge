@@ -13,7 +13,7 @@ import (
 type client struct {
 	clientId        uuid.UUID
 	cn              *websocket.Conn
-	gameCoordinator *Coordinator
+	gameCoordinator *coordinator
 	toSend          chan *messages.Response // responses sent to users
 	closeRequested  bool
 	mu              sync.Mutex
@@ -22,7 +22,7 @@ type client struct {
 
 type clients map[uuid.UUID]*client
 
-func newConnection(_c *websocket.Conn) *client {
+func newClient(_c *websocket.Conn) *client {
 	return &client{
 		clientId:       uuid.New(),
 		cn:             _c,
@@ -32,7 +32,8 @@ func newConnection(_c *websocket.Conn) *client {
 }
 
 // Starts the client read/write pump enabling communication ability
-func (c *client) activateClientOnGameserver() {
+func (c *client) activateClientOnGameserver(_gameCoordinator *coordinator) {
+	c.gameCoordinator = _gameCoordinator
 	go c.writePump()
 	go c.readPump()
 }
@@ -74,7 +75,7 @@ func (c *client) readPump() {
 		} else {
 			// SEND THE MESSAGE TO game
 			c.lastSeq++
-			c.gameCoordinator.playerMessages <- message
+			log.Debugf("Received: %v", message)
 		}
 	}
 }

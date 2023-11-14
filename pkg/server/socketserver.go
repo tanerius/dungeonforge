@@ -9,13 +9,14 @@ import (
 )
 
 type SocketServer struct {
-	coord    *Coordinator
-	upgrader websocket.Upgrader
+	gameServer GameServer
+	upgrader   websocket.Upgrader
 }
 
-func NewSocketServer(_c *Coordinator) *SocketServer {
+func NewSocketServer(_gameServer GameServer) *SocketServer {
+
 	return &SocketServer{
-		coord: _c,
+		gameServer: _gameServer,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -39,7 +40,8 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	playerConnection := newConnection(c)
+	playerConnection := newClient(c)
 	log.Println("SocketServer * Registering new client ...")
-	s.coord.register <- playerConnection
+
+	s.gameServer.HandleClient(playerConnection)
 }
