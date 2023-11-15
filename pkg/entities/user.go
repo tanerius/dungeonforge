@@ -2,7 +2,7 @@ package entities
 
 import "time"
 
-//User connects to login credentials to a user object
+// User connects to login credentials to a user object
 type User struct {
 	*Entity `bson:",inline"`
 

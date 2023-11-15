@@ -12,34 +12,34 @@ type PlayerID string
 // A game coordinator controls player pools for a given server.
 // This can be distributed.
 // If coordinator dies, all users connected to italso disconnect from the game.
-type coordinator struct {
+type Coordinator struct {
 	id                uuid.UUID
 	activeConnections clients
 	players           map[PlayerID]uuid.UUID
 
-	register           chan *client
-	unregister         chan *client
-	playerMessagesChan chan *messages.Payload
-	playerLogoutChan   chan PlayerID
+	Register           chan *Client
+	Unregister         chan *Client
+	PlayerMessagesChan chan *messages.Payload
+	PlayerLogoutChan   chan PlayerID
 
-	playerLoginChan chan *struct {
+	PlayerLoginChan chan *struct {
 		Pid PlayerID
 		Cid uuid.UUID
 	}
 }
 
 // Create a new Coordinator
-func newCoordinator() *coordinator {
-	return &coordinator{
+func NewCoordinator() *Coordinator {
+	return &Coordinator{
 		id:                uuid.New(), // handle this in case of panic
 		activeConnections: make(clients),
 		players:           make(map[PlayerID]uuid.UUID),
 
-		register:           make(chan *client),
-		unregister:         make(chan *client),
-		playerMessagesChan: make(chan *messages.Payload, 32),
-		playerLogoutChan:   make(chan PlayerID),
-		playerLoginChan: make(chan *struct {
+		Register:           make(chan *Client),
+		Unregister:         make(chan *Client),
+		PlayerMessagesChan: make(chan *messages.Payload, 32),
+		PlayerLogoutChan:   make(chan PlayerID),
+		PlayerLoginChan: make(chan *struct {
 			Pid PlayerID
 			Cid uuid.UUID
 		}),
@@ -47,17 +47,17 @@ func newCoordinator() *coordinator {
 }
 
 // Run the Coordinator
-func (hub *coordinator) Run() {
+func (hub *Coordinator) Run() {
 	log.Println("coordinator * started")
 	for {
 		select {
 		//LOGOUT
-		case playerLoggingOut := <-hub.playerLogoutChan:
+		case playerLoggingOut := <-hub.PlayerLogoutChan:
 			// make sure first that player logged out
 			delete(hub.players, playerLoggingOut)
 
 		//LOGIN
-		case newPlayerConnection := <-hub.playerLoginChan:
+		case newPlayerConnection := <-hub.PlayerLoginChan:
 			if currentConnectionId, ok := hub.players[newPlayerConnection.Pid]; ok {
 				// player already registered
 				// make sure his connection is the same as the new one registering
@@ -67,7 +67,7 @@ func (hub *coordinator) Run() {
 					log.Printf("Coordinator * Existing player %s connection changed %s -> %s  \n",
 						newPlayerConnection.Pid, currentConnectionId.String(), newPlayerConnection.Cid.String())
 					go func() {
-						hub.unregister <- hub.activeConnections[currentConnectionId]
+						hub.Unregister <- hub.activeConnections[currentConnectionId]
 					}()
 				} else {
 					log.Warnf("Coordinator * Existing player retrying login...")
@@ -82,13 +82,13 @@ func (hub *coordinator) Run() {
 			}
 
 		// REGISTER CONNECTION
-		case c := <-hub.register:
+		case c := <-hub.Register:
 			log.Printf("Coordinator * Client %s connected \n", c.clientId.String())
 			hub.activeConnections[c.clientId] = c
 			c.activateClientOnGameserver(hub)
 
 		// UNREGISTER CONNECTION
-		case c := <-hub.unregister:
+		case c := <-hub.Unregister:
 			if _, ok := hub.activeConnections[c.clientId]; ok {
 				log.Printf("Coordinator * Disconnecting %s \n", c.clientId.String())
 				// TODO: make sure gameserver also receives word that a potential player is dropped
@@ -104,38 +104,33 @@ func (hub *coordinator) Run() {
 }
 
 // Get total connections and total logged in players
-func (hub *coordinator) GetCounts() (int, int) {
+func (hub *Coordinator) GetCounts() (int, int) {
 	return len(hub.activeConnections), len(hub.players)
 }
 
-func (hub *coordinator) SendMessageToClient(_msg *messages.Response, _clients uuid.UUID) {
+func (hub *Coordinator) SendMessageToClient(_msg *messages.Response, _clients uuid.UUID) {
 	hub.SendMessageToClients(_msg, []uuid.UUID{_clients})
 }
 
-func (hub *coordinator) SendMessageToClients(_msg *messages.Response, _clients []uuid.UUID) {
+func (hub *Coordinator) SendMessageToClients(_msg *messages.Response, _clients []uuid.UUID) {
 	for _, _client := range _clients {
 		log.Printf("Coordinator * sending to %s \n", _client.String())
 		if c, ok := hub.activeConnections[_client]; ok {
-			go func() {
-				log.Printf("Coordinator * seding... ")
-				c.toSend <- _msg
-				log.Printf("Coordinator * sent ")
-			}()
-			/*
-				select {
-				case c.toSend <- _msg:
-					break
-				default:
-					c.closeRequested = true
-					hub.unregister <- c
-					log.Errorf("Coordinator * client %s broke \n", c.clientId.String())
-				}
-			*/
+
+			select {
+			case c.toSend <- _msg:
+				break
+			default:
+				c.closeRequested = true
+				hub.Unregister <- c
+				log.Errorf("Coordinator * client %s broke \n", c.clientId.String())
+			}
+
 		}
 	}
 }
 
-func (hub *coordinator) BroadcastMessageToClients(_msg *messages.Response) {
+func (hub *Coordinator) BroadcastMessageToClients(_msg *messages.Response) {
 
 	for _, c := range hub.activeConnections {
 		select {
@@ -143,7 +138,7 @@ func (hub *coordinator) BroadcastMessageToClients(_msg *messages.Response) {
 			// Send successful
 		default:
 			c.closeRequested = true
-			hub.unregister <- c
+			hub.Unregister <- c
 			log.Errorf("Coordinator * client %s broke \n", c.clientId.String())
 		}
 	}

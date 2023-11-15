@@ -10,20 +10,20 @@ import (
 )
 
 // Server side representation of the connected client
-type client struct {
+type Client struct {
 	clientId        uuid.UUID
 	cn              *websocket.Conn
-	gameCoordinator *coordinator
+	gameCoordinator *Coordinator
 	toSend          chan *messages.Response // responses sent to users
 	closeRequested  bool
 	mu              sync.Mutex
 	lastSeq         int64
 }
 
-type clients map[uuid.UUID]*client
+type clients map[uuid.UUID]*Client
 
-func newClient(_c *websocket.Conn) *client {
-	return &client{
+func newClient(_c *websocket.Conn) *Client {
+	return &Client{
 		clientId:       uuid.New(),
 		cn:             _c,
 		closeRequested: false,
@@ -33,7 +33,7 @@ func newClient(_c *websocket.Conn) *client {
 }
 
 // Starts the client read/write pump enabling communication ability
-func (c *client) activateClientOnGameserver(_gameCoordinator *coordinator) {
+func (c *Client) activateClientOnGameserver(_gameCoordinator *Coordinator) {
 	log.Printf("%s activating...\n", c.clientId.String())
 	c.gameCoordinator = _gameCoordinator
 	go c.writePump()
@@ -45,9 +45,9 @@ func (c *client) activateClientOnGameserver(_gameCoordinator *coordinator) {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *client) readPump() {
+func (c *Client) readPump() {
 	defer func() {
-		c.gameCoordinator.unregister <- c
+		c.gameCoordinator.Unregister <- c
 	}()
 	//c.cn.SetReadLimit(maxMessageSize)
 	//c.cn.SetReadDeadline(time.Now().Add(pongWait))
@@ -74,7 +74,7 @@ func (c *client) readPump() {
 		} else {
 			// SEND THE MESSAGE TO game
 			c.lastSeq++
-			c.gameCoordinator.playerMessagesChan <- message
+			c.gameCoordinator.PlayerMessagesChan <- message
 		}
 	}
 }
@@ -84,14 +84,14 @@ func (c *client) readPump() {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *client) writePump() {
+func (c *Client) writePump() {
 	//ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		log.Printf("%s closing connection...\n", c.clientId.String())
 		c.mu.Lock()
 		if !c.closeRequested {
 			c.closeRequested = true
-			c.gameCoordinator.unregister <- c
+			c.gameCoordinator.Unregister <- c
 		}
 		c.mu.Unlock()
 		log.Printf("%s closed\n", c.clientId.String())

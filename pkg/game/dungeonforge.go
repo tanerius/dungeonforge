@@ -1,4 +1,4 @@
-package server
+package game
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/dungeonforge/pkg/messages"
+	"github.com/tanerius/dungeonforge/pkg/server"
 
 	gameLoop "github.com/kutase/go-gameloop"
 )
@@ -14,28 +15,28 @@ import (
 type DungeonForge struct {
 	id              uuid.UUID
 	gameloop        *gameLoop.GameLoop
-	gameCoordinator *coordinator
+	gameCoordinator *server.Coordinator
 	isRunning       bool
 }
 
-func NewGameServer() *DungeonForge {
+func NewDungeonForge() *DungeonForge {
 
 	return &DungeonForge{
 		id:              uuid.New(),
 		gameloop:        nil,
-		gameCoordinator: newCoordinator(),
+		gameCoordinator: server.NewCoordinator(),
 		isRunning:       false,
 	}
 }
 
 // A handler for new clients. Every new client should be handed off here!
-func (d *DungeonForge) HandleClient(_client *client) error {
+func (d *DungeonForge) HandleClient(_client *server.Client) error {
 	if !d.isRunning {
 		return errors.New("gameserver not running")
 	}
 
 	go func() {
-		d.gameCoordinator.register <- _client
+		d.gameCoordinator.Register <- _client
 	}()
 
 	return nil
@@ -73,7 +74,7 @@ func (d *DungeonForge) Run() {
 			*/
 			connections, players := d.gameCoordinator.GetCounts()
 			log.Printf("gameserver * %d players / %d connections", players, connections)
-		case msg := <-d.gameCoordinator.playerMessagesChan:
+		case msg := <-d.gameCoordinator.PlayerMessagesChan:
 			log.Printf("gameserver * received %v", msg)
 			go d.ProcessMsg(msg)
 		}
@@ -83,6 +84,7 @@ func (d *DungeonForge) Run() {
 
 // This is the place where messages from clients are processed in the game
 func (d *DungeonForge) ProcessMsg(_msg *messages.Payload) {
+
 	// for now just anser the client with an empty message
 	resp := &messages.Response{
 		Ts:  time.Now().Unix(),

@@ -1,9 +1,12 @@
 package main
 
-import "github.com/tanerius/dungeonforge/pkg/server"
+import (
+	"github.com/tanerius/dungeonforge/pkg/game"
+	"github.com/tanerius/dungeonforge/pkg/server"
+)
 
 func main() {
-	var gameServer *server.DungeonForge = server.NewGameServer()
+	var gameServer *game.DungeonForge = game.NewDungeonForge()
 	go gameServer.Run()
 
 	var server *server.SocketServer = server.NewSocketServer(gameServer)
