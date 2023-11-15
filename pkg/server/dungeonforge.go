@@ -16,11 +16,6 @@ type DungeonForge struct {
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *coordinator
 	isRunning       bool
-	messagePump     chan *messages.Payload
-	players         map[PlayerID]struct {
-		cid  uuid.UUID
-		gcid uuid.UUID
-	}
 }
 
 func NewGameServer() *DungeonForge {
@@ -30,7 +25,6 @@ func NewGameServer() *DungeonForge {
 		gameloop:        nil,
 		gameCoordinator: newCoordinator(),
 		isRunning:       false,
-		messagePump:     make(chan *messages.Payload, 32),
 	}
 }
 
@@ -77,8 +71,9 @@ func (d *DungeonForge) Run() {
 					// A player has disconnected, you can perform any cleanup here.
 					log.Println("Player disconnected. " + c.entityId.String())
 			*/
-			log.Printf("gameserver * ticking. %d players online", len(d.players))
-		case msg := <-d.messagePump:
+			connections, players := d.gameCoordinator.GetCounts()
+			log.Printf("gameserver * %d players / %d connections", players, connections)
+		case msg := <-d.gameCoordinator.playerMessagesChan:
 			log.Printf("gameserver * received %v", msg)
 			go d.ProcessMsg(msg)
 		}

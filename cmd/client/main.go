@@ -76,6 +76,8 @@ func main() {
 							if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
 								log.Printf("Client reader * %v", err)
 							}
+							conn = nil
+							seq = 1
 							break
 						}
 
@@ -89,7 +91,7 @@ func main() {
 	var i int = -1
 
 	for !quit {
-		fmt.Print("Welcome to server test client\n\n")
+		fmt.Print("\n\nWelcome to server test client\n\n")
 		fmt.Print("Choices: \n")
 		fmt.Print("0. Quit \n")
 		fmt.Print("1. Establish connection \n")

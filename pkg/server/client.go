@@ -28,11 +28,13 @@ func newClient(_c *websocket.Conn) *client {
 		cn:             _c,
 		closeRequested: false,
 		lastSeq:        0,
+		toSend:         make(chan *messages.Response),
 	}
 }
 
 // Starts the client read/write pump enabling communication ability
 func (c *client) activateClientOnGameserver(_gameCoordinator *coordinator) {
+	log.Printf("%s activating...\n", c.clientId.String())
 	c.gameCoordinator = _gameCoordinator
 	go c.writePump()
 	go c.readPump()
@@ -50,12 +52,13 @@ func (c *client) readPump() {
 	//c.cn.SetReadLimit(maxMessageSize)
 	//c.cn.SetReadDeadline(time.Now().Add(pongWait))
 	//c.cn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	log.Printf("%s read pump starting...\n", c.clientId.String())
 	for {
 		var message *messages.Payload = &messages.Payload{}
 		err := c.cn.ReadJSON(message)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
-				log.Printf("server client error: %v", err)
+				log.Errorf("%s: %v", c.clientId.String(), err)
 			}
 			break
 		}
@@ -66,12 +69,12 @@ func (c *client) readPump() {
 		// check if out of sequence
 		if c.lastSeq+1 != message.Seq {
 			// out of sequence
-			log.Printf("server client Received out of sequence: %v", message)
+			log.Errorf("%s out of sequence: %v expected %d\n", c.clientId.String(), message, c.lastSeq+1)
 			break
 		} else {
 			// SEND THE MESSAGE TO game
 			c.lastSeq++
-			log.Printf("server client Received: %v", message)
+			c.gameCoordinator.playerMessagesChan <- message
 		}
 	}
 }
@@ -84,30 +87,31 @@ func (c *client) readPump() {
 func (c *client) writePump() {
 	//ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		log.Printf("%s closing connection...\n", c.clientId.String())
 		c.mu.Lock()
 		if !c.closeRequested {
 			c.closeRequested = true
 			c.gameCoordinator.unregister <- c
 		}
 		c.mu.Unlock()
+		log.Printf("%s closed\n", c.clientId.String())
 	}()
 
-	for {
-		select {
-		case message, ok := <-c.toSend:
-			log.Println("server client sending response...")
-			if !ok {
-				log.Println("server client sending channel closed")
-				// The hub closed the channel.
-				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
-				c.cn.WriteMessage(websocket.CloseMessage, cm)
-				return
-			}
+	log.Printf("%s write pump starting...\n", c.clientId.String())
 
-			if err := c.cn.WriteJSON(message); err != nil {
-				log.Errorf("server client writing response * %v", err)
-				return
-			}
+	for {
+		message, ok := <-c.toSend
+		if !ok {
+			log.Printf("%s sending channel closed\n", c.clientId.String())
+			// The hub closed the channel.
+			cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
+			c.cn.WriteMessage(websocket.CloseMessage, cm)
+			return
+		}
+
+		if err := c.cn.WriteJSON(message); err != nil {
+			log.Errorf("%s writing response * %v", c.clientId.String(), err)
+			return
 		}
 	}
 }
