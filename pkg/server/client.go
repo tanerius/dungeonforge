@@ -45,12 +45,7 @@ func (c *client) activateClientOnGameserver(_gameCoordinator *coordinator) {
 // reads from this goroutine.
 func (c *client) readPump() {
 	defer func() {
-		c.mu.Lock()
-		if !c.closeRequested {
-			c.closeRequested = true
-			c.gameCoordinator.unregister <- c
-		}
-		c.mu.Unlock()
+		c.gameCoordinator.unregister <- c
 	}()
 	//c.cn.SetReadLimit(maxMessageSize)
 	//c.cn.SetReadDeadline(time.Now().Add(pongWait))
@@ -59,8 +54,8 @@ func (c *client) readPump() {
 		var message *messages.Payload = &messages.Payload{}
 		err := c.cn.ReadJSON(message)
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("client error: %v", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
+				log.Printf("server client error: %v", err)
 			}
 			break
 		}
@@ -71,11 +66,12 @@ func (c *client) readPump() {
 		// check if out of sequence
 		if c.lastSeq+1 != message.Seq {
 			// out of sequence
+			log.Printf("server client Received out of sequence: %v", message)
 			break
 		} else {
 			// SEND THE MESSAGE TO game
 			c.lastSeq++
-			log.Debugf("Received: %v", message)
+			log.Printf("server client Received: %v", message)
 		}
 	}
 }
@@ -99,7 +95,9 @@ func (c *client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.toSend:
+			log.Println("server client sending response...")
 			if !ok {
+				log.Println("server client sending channel closed")
 				// The hub closed the channel.
 				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
 				c.cn.WriteMessage(websocket.CloseMessage, cm)
@@ -107,7 +105,7 @@ func (c *client) writePump() {
 			}
 
 			if err := c.cn.WriteJSON(message); err != nil {
-				log.Error(err)
+				log.Errorf("server client writing response * %v", err)
 				return
 			}
 		}

@@ -15,9 +15,11 @@ type PlayerID string
 type coordinator struct {
 	id                uuid.UUID
 	activeConnections clients
-	register          chan *client
-	unregister        chan *client
-	playerMessage     chan *messages.Payload
+	playerToClientMap map[string]uuid.UUID
+
+	register      chan *client
+	unregister    chan *client
+	playerMessage chan *messages.Payload
 }
 
 // Create a new Coordinator
@@ -25,9 +27,11 @@ func newCoordinator() *coordinator {
 	return &coordinator{
 		id:                uuid.New(), // handle this in case of panic
 		activeConnections: make(clients),
-		register:          make(chan *client),
-		unregister:        make(chan *client),
-		playerMessage:     make(chan *messages.Payload),
+		playerToClientMap: make(map[string]uuid.UUID),
+
+		register:      make(chan *client),
+		unregister:    make(chan *client),
+		playerMessage: make(chan *messages.Payload),
 	}
 }
 
@@ -44,9 +48,44 @@ func (hub *coordinator) Run() {
 			if _, ok := hub.activeConnections[c.clientId]; ok {
 				log.Printf("Coordinator * Disconnecting %s \n", c.clientId.String())
 				delete(hub.activeConnections, c.clientId)
+				// maybe we should also close the channel here
 				c.cn.Close()
 			}
 		}
 
 	}
+}
+
+func (hub *coordinator) SendMessageToClient(_msg *messages.Response, _clients uuid.UUID) {
+	hub.SendMessageToClients(_msg, []uuid.UUID{_clients})
+}
+
+func (hub *coordinator) SendMessageToClients(_msg *messages.Response, _clients []uuid.UUID) {
+	for _, _client := range _clients {
+		if c, ok := hub.activeConnections[_client]; ok {
+			select {
+			case c.toSend <- _msg:
+				// Send successful
+			default:
+				c.closeRequested = true
+				hub.unregister <- c
+				log.Errorf("Coordinator * client %s broke \n", c.clientId.String())
+			}
+		}
+	}
+}
+
+func (hub *coordinator) BroadcastMessageToClients(_msg *messages.Response) {
+
+	for _, c := range hub.activeConnections {
+		select {
+		case c.toSend <- _msg:
+			// Send successful
+		default:
+			c.closeRequested = true
+			hub.unregister <- c
+			log.Errorf("Coordinator * client %s broke \n", c.clientId.String())
+		}
+	}
+
 }

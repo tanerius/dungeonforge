@@ -4,25 +4,37 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/messages"
 
 	gameLoop "github.com/kutase/go-gameloop"
 )
 
 type DungeonForge struct {
+	id              uuid.UUID
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *coordinator
 	isRunning       bool
-}
-
-func NewGameServer() *DungeonForge {
-	return &DungeonForge{
-		gameloop:        nil,
-		gameCoordinator: newCoordinator(),
-		isRunning:       false,
+	messagePump     chan *messages.Payload
+	players         map[PlayerID]struct {
+		cid  uuid.UUID
+		gcid uuid.UUID
 	}
 }
 
+func NewGameServer() *DungeonForge {
+
+	return &DungeonForge{
+		id:              uuid.New(),
+		gameloop:        nil,
+		gameCoordinator: newCoordinator(),
+		isRunning:       false,
+		messagePump:     make(chan *messages.Payload, 32),
+	}
+}
+
+// A handler for new clients. Every new client should be handed off here!
 func (d *DungeonForge) HandleClient(_client *client) error {
 	if !d.isRunning {
 		return errors.New("gameserver not running")
@@ -35,6 +47,7 @@ func (d *DungeonForge) HandleClient(_client *client) error {
 	return nil
 }
 
+// Run the gameserver
 func (d *DungeonForge) Run() {
 	log.Println("gameserver * starting...")
 	if d.isRunning {
@@ -64,12 +77,28 @@ func (d *DungeonForge) Run() {
 					// A player has disconnected, you can perform any cleanup here.
 					log.Println("Player disconnected. " + c.entityId.String())
 			*/
-			log.Println("gameserver * ticking...")
-
+			log.Printf("gameserver * ticking. %d players online", len(d.players))
+		case msg := <-d.messagePump:
+			log.Printf("gameserver * received %v", msg)
+			go d.ProcessMsg(msg)
 		}
 	}
+
 }
 
+// This is the place where messages from clients are processed in the game
+func (d *DungeonForge) ProcessMsg(_msg *messages.Payload) {
+	// for now just anser the client with an empty message
+	resp := &messages.Response{
+		Ts:  time.Now().Unix(),
+		Sid: d.id.String(),
+	}
+
+	d.gameCoordinator.SendMessageToClient(resp, _msg.ClientId)
+}
+
+// Stop the gameserver
 func (d *DungeonForge) Stop() {
 	// TODO: Implement
+	d.isRunning = true
 }

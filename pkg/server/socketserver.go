@@ -36,7 +36,7 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	log.Println("SocketServer * New client trying to connect ...")
 	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Error("upgrade * ", err)
+		log.Errorf("SocketServer upgrade * %v \n", err)
 		return
 	}
 
