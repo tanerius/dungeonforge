@@ -29,7 +29,7 @@ func main() {
 					continue
 				}
 				if err := conn.WriteJSON(msg); err != nil {
-					log.Errorf("Client * ", err)
+					log.Errorf("Client * %v", err)
 					continue
 				}
 				seq++
@@ -74,7 +74,9 @@ func main() {
 						err := conn.ReadJSON(message)
 						if err != nil {
 							if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
-								log.Printf("Client reader * %v", err)
+								log.Errorf("Client reader * %v", err)
+							} else {
+								log.Printf("Client reader * server said: %v", err)
 							}
 							conn = nil
 							seq = 1

@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
 
@@ -13,7 +14,8 @@ import (
 )
 
 type DungeonForge struct {
-	id              uuid.UUID
+	*server.GameConfig
+	serverId        uuid.UUID
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *server.Coordinator
 	isRunning       bool
@@ -22,10 +24,25 @@ type DungeonForge struct {
 func NewDungeonForge() *DungeonForge {
 
 	return &DungeonForge{
-		id:              uuid.New(),
+		GameConfig: &server.GameConfig{
+			GameId:      1,
+			GameName:    "Dungeon Forge",
+			IsTurnBased: false,
+			IsRealtime:  false,
+		},
+		serverId:        uuid.New(),
 		gameloop:        nil,
 		gameCoordinator: server.NewCoordinator(),
 		isRunning:       false,
+	}
+}
+
+func (d *DungeonForge) Config() server.GameConfig {
+	return server.GameConfig{
+		GameId:      d.GameId,
+		GameName:    d.GameName,
+		IsTurnBased: d.IsTurnBased,
+		IsRealtime:  d.IsRealtime,
 	}
 }
 
@@ -85,10 +102,15 @@ func (d *DungeonForge) Run() {
 // This is the place where messages from clients are processed in the game
 func (d *DungeonForge) ProcessMsg(_msg *messages.Payload) {
 
-	// for now just anser the client with an empty message
+	// for now just answer the client with an empty message
 	resp := &messages.Response{
 		Ts:  time.Now().Unix(),
-		Sid: d.id.String(),
+		Sid: d.serverId.String(),
+		Data: &game.Response{
+			Ts:   time.Now().Unix(),
+			Code: game.RspNotAuthorised,
+			Msg:  "not authenticated",
+		},
 	}
 
 	d.gameCoordinator.SendMessageToClient(resp, _msg.ClientId)

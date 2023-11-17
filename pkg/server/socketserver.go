@@ -43,5 +43,12 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	playerConnection := newClient(c)
 	log.Println("SocketServer * Registering new client ...")
 
-	s.gameServer.HandleClient(playerConnection)
+	if err := s.gameServer.HandleClient(playerConnection); err != nil {
+		log.Errorf("SocketServer * gameserver said: %v ", err)
+		cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, err.Error())
+		playerConnection.cn.WriteMessage(websocket.CloseMessage, cm)
+		playerConnection.cn.Close()
+		close(playerConnection.toSend)
+	}
+
 }
