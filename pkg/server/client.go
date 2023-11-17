@@ -18,6 +18,7 @@ type Client struct {
 	closeRequested  bool
 	mu              sync.Mutex
 	lastSeq         int64
+	disconnectChan  chan string
 }
 
 type clients map[uuid.UUID]*Client
@@ -29,6 +30,7 @@ func newClient(_c *websocket.Conn) *Client {
 		closeRequested: false,
 		lastSeq:        0,
 		toSend:         make(chan *messages.Response),
+		disconnectChan: make(chan string),
 	}
 }
 
@@ -100,17 +102,24 @@ func (c *Client) writePump() {
 	log.Printf("%s write pump starting...\n", c.clientId.String())
 
 	for {
-		message, ok := <-c.toSend
-		if !ok {
-			log.Printf("%s sending channel closed\n", c.clientId.String())
-			// The hub closed the channel.
-			cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
-			c.cn.WriteMessage(websocket.CloseMessage, cm)
-			return
-		}
+		select {
+		case message, ok := <-c.toSend:
+			if !ok {
+				log.Printf("%s sending channel closed\n", c.clientId.String())
+				// The hub closed the channel.
+				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
+				c.cn.WriteMessage(websocket.CloseMessage, cm)
+				return
+			}
 
-		if err := c.cn.WriteJSON(message); err != nil {
-			log.Errorf("%s writing response * %v", c.clientId.String(), err)
+			if err := c.cn.WriteJSON(message); err != nil {
+				log.Errorf("%s writing response * %v", c.clientId.String(), err)
+				return
+			}
+		case message, _ := <-c.disconnectChan:
+			// The close connection
+			cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, message)
+			c.cn.WriteMessage(websocket.CloseMessage, cm)
 			return
 		}
 	}
