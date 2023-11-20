@@ -1,6 +1,7 @@
 package game
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/google/uuid"
@@ -69,8 +70,8 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 
 	// TODO: make a timeout here
 	d.gameCoordinator.Register <- _client
-	var writeChan chan *messages.Response = make(chan *messages.Response)
-	var readChan chan *messages.Request = make(chan *messages.Request)
+	var writeChan chan []byte = make(chan []byte)
+	var readChan chan []byte = make(chan []byte)
 
 	if err := _client.ActivateClient(writeChan, readChan); err != nil {
 		log.Error(err)
@@ -78,21 +79,17 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 	}
 
 	for {
-		msg, ok := <-readChan
+		stream, ok := <-readChan
 
 		if !ok {
 			log.Errorf("[s] can't read channel %s ", _client.ID())
 			return
 		}
 
-		// make sure its not disconnect
-		if msg.CmdType == messages.CmdLost {
-			log.Debugf("[s] lost sonnection to  %s ", _client.ID())
-			return
-		}
+		var msg *messages.Request = &messages.Request{}
 
-		if msg.CmdType != messages.CmdExec {
-			log.Errorf("[s] unknown message from %s ", _client.ID())
+		if err := json.Unmarshal(stream, msg); err != nil {
+			log.Errorf("[s] cannot unmarshal message from %s ", _client.ID())
 		} else {
 			log.Debugf("[s] data %s : %v ", _client.ID(), msg)
 		}

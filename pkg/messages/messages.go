@@ -10,9 +10,8 @@ const (
 )
 
 type Request struct {
-	ClientId string
-	Seq      int64   `json:"sqeuence"`
-	CmdType  Command `json:"cmdType"`
+	Seq     int64   `json:"sqeuence"`
+	CmdType Command `json:"cmdType"`
 }
 
 type Response struct {

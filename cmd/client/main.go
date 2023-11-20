@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -29,7 +30,14 @@ func main() {
 					log.Errorln("Client * Cannot send to a nil conn")
 					continue
 				}
-				if err := conn.WriteJSON(msg); err != nil {
+				// masrshal the message
+				data, err := json.Marshal(msg)
+				if err != nil {
+					log.Errorf("Client * cannot marshal: %v", err)
+					continue
+				}
+
+				if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
 					log.Errorf("Client * %v", err)
 					continue
 				}
@@ -81,7 +89,7 @@ func main() {
 				go func() {
 					for {
 						var message *messages.Response = &messages.Response{}
-						err := conn.ReadJSON(message)
+						_, data, err := conn.ReadMessage()
 						if err != nil {
 							if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
 								log.Errorf("Client reader * %v", err)
@@ -93,7 +101,13 @@ func main() {
 							break
 						}
 
-						log.Printf("Client * Received: %v \n", message)
+						//unmarshal
+						if err := json.Unmarshal(data, message); err != nil {
+							log.Errorf("Client reader cannot unmarshal * %v", err)
+						} else {
+							log.Printf("Client * Received: %v \n", message)
+						}
+
 					}
 				}()
 			}
@@ -107,7 +121,7 @@ func main() {
 		fmt.Print("Choices: \n")
 		fmt.Print("0. Quit \n")
 		fmt.Print("1. Establish connection \n")
-		fmt.Print("2. Send login message \n")
+		fmt.Print("2. Send basic messages.Request message \n")
 		fmt.Print("3. Close connection \n")
 		fmt.Scanln(&i)
 
@@ -117,7 +131,10 @@ func main() {
 		} else if i == 1 {
 			connectChan <- true
 		} else if i == 2 {
-			var YData *messages.Request = &messages.Request{}
+			var YData *messages.Request = &messages.Request{
+				CmdType: messages.CmdExec,
+				Seq:     1,
+			}
 			sendChan <- YData
 		} else if i == 3 {
 			disconnectChan <- true

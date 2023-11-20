@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/messages"
 )
 
 // Server side representation of the connected client
@@ -39,7 +38,7 @@ func newClient(_c *websocket.Conn) *Client {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump(msgChan chan<- *messages.Request) {
+func (c *Client) readPump(msgChan chan<- []byte) {
 	defer func() {
 		c.wg.Done()
 		log.Debugf("%s read pump stopped.\n", c.clientId)
@@ -58,29 +57,18 @@ func (c *Client) readPump(msgChan chan<- *messages.Request) {
 		return nil
 	})
 
-	var isLost bool = false
-
 	for {
-		var message *messages.Request = &messages.Request{}
-		isLost = false
-
-		err := c.cn.ReadJSON(message)
+		_, message, err := c.cn.ReadMessage()
 
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
 				log.Errorf("%s: %v", c.clientId, err)
 			}
-			isLost = true
-			message.CmdType = messages.CmdLost
+			return
 		}
 
-		// Append the UUID
-		message.ClientId = c.clientId
 		c.lastSeq++
 		msgChan <- message
-		if isLost {
-			break
-		}
 		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	}
 }
@@ -90,7 +78,7 @@ func (c *Client) readPump(msgChan chan<- *messages.Request) {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump(toSend <-chan *messages.Response) {
+func (c *Client) writePump(toSend <-chan []byte) {
 
 	ticker := time.NewTicker(10 * time.Second)
 
@@ -104,22 +92,21 @@ func (c *Client) writePump(toSend <-chan *messages.Response) {
 
 	for {
 		select {
-		case message := <-toSend:
-
-			c.cn.SetWriteDeadline(time.Now().Add(12 * time.Second))
-			if message.Cmd == messages.CmdDisconnect {
-				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, message.Msg)
-				if err := c.cn.WriteMessage(websocket.CloseMessage, cm); err != nil {
-					log.Errorf("%s writing close message * %v", c.clientId, err)
-					return
-				}
-			} else {
-				if err := c.cn.WriteJSON(message); err != nil {
-					log.Errorf("%s writing response * %v", c.clientId, err)
-					return
-				}
+		case message, ok := <-toSend:
+			if !ok {
+				// close when channel is closed
+				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
+				c.cn.WriteMessage(websocket.CloseMessage, cm)
+				return
 			}
 
+			if err := c.cn.WriteMessage(websocket.BinaryMessage, message); err != nil {
+				log.Errorf("%s writing response * %v", c.clientId, err)
+				return
+			}
+
+			ticker.Reset(10 * time.Second)
+			c.cn.SetWriteDeadline(time.Now().Add(12 * time.Second))
 			ticker.Reset(10 * time.Second)
 
 		case <-ticker.C:
@@ -140,7 +127,7 @@ func (c *Client) DeActivateClient() {
 	log.Debugf("%s deactivated ", c.clientId)
 }
 
-func (c *Client) ActivateClient(input <-chan *messages.Response, output chan<- *messages.Request) error {
+func (c *Client) ActivateClient(input <-chan []byte, output chan<- []byte) error {
 	if c.started {
 		return errors.New("client already activated")
 	}
