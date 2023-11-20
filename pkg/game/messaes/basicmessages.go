@@ -1,22 +1,17 @@
 package game
 
-type Command int
+import "github.com/tanerius/dungeonforge/pkg/messages"
 
 const (
-	CmdNothing Command = 0 // nothing
-	CmdLogin   Command = 1 // Login player
-	CmdLogout  Command = 2 // Logout player
+	TypeNothing int = iota // nothing
+	TypeLogin              // Login player
+	TypeLogout             // Logout player
 )
 
-type Request struct {
-	Cmd  Command     `json:"cmd"`
-	Ts   int64       `json:"ts"`
-	Data interface{} `json:"data,omitempty"`
-}
-
 type RequestLogin struct {
-	PlayerId string `json:"pid"`
-	Password string `json:"pass"`
+	messages.Request
+	PlayerId string `json:"pid,omitempty"`
+	Password string `json:"pass,omitempty"`
 }
 
 type RspCode int

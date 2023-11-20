@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
 
@@ -87,43 +88,41 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 		}
 
 		var msg *messages.Request = &messages.Request{}
+		//var msg *game.RequestLogin = &game.RequestLogin{}
 
 		if err := json.Unmarshal(stream, msg); err != nil {
-			log.Errorf("[s] cannot unmarshal message from %s ", _client.ID())
+			log.Errorf("[s] cannot unmarshal message from %s : %v", _client.ID(), err)
 		} else {
 			log.Debugf("[s] data %s : %v ", _client.ID(), msg)
-		}
-	}
 
-	/*
-		for {
-			select {
-			case msg := <-readChan:
-				// Read messsage from the client
-				log.Infof("Reading %v", msg)
-				if msg.Cmd == messages.CmdDisconnect {
-					log.Debugf("server received disconnect request from %s ", _client.ID())
-					writeChan <- &messages.Response{
-						Ts:  time.Now().Unix(),
-						Sid: d.serverId.String(),
-						Cmd: messages.CmdDisconnect,
-						Msg: "bye",
-					}
-					return
-				} else {
-					writeChan <- d.responseNotAuthorized()
-				}
-			case <-_client.DisconnectedChan:
-				// TODO: do all game disconnects here
-				log.Debugf("client %s disconnected", _client.ID())
+			if msg.CmdType == messages.CmdDisconnect {
+				// disconnecting client
+				close(writeChan)
 				return
+			} else if msg.CmdType == messages.CmdExec {
+				switch msg.DataType {
+				case int(game.TypeLogin):
+					d.processLogin(stream, writeChan)
+				default:
+					log.Debugf("[s] data %v ", msg)
+				}
 			}
 		}
-	*/
+	}
 }
 
 // Stop the gameserver
 func (d *DungeonForge) Stop() {
 	// TODO: Implement
 	d.isRunning = false
+}
+
+func (d *DungeonForge) processLogin(data []byte, writer chan<- []byte) {
+	var loginInfo *game.RequestLogin = &game.RequestLogin{}
+
+	if err := json.Unmarshal(data, loginInfo); err != nil {
+		log.Errorf("[s] cannot unmarshal processLogin : %v", err)
+	} else {
+		log.Debugf("[s] login data %v ", loginInfo)
+	}
 }

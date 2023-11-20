@@ -7,13 +7,14 @@ import (
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 )
 
 const wsServerEndpoont = "ws://localhost:40000/ws"
 
 func main() {
-	sendChan := make(chan *messages.Request)
+	sendChan := make(chan []byte)
 	quitChan := make(chan bool)
 	connectChan := make(chan bool)
 	disconnectChan := make(chan bool)
@@ -30,14 +31,8 @@ func main() {
 					log.Errorln("Client * Cannot send to a nil conn")
 					continue
 				}
-				// masrshal the message
-				data, err := json.Marshal(msg)
-				if err != nil {
-					log.Errorf("Client * cannot marshal: %v", err)
-					continue
-				}
 
-				if err := conn.WriteMessage(websocket.BinaryMessage, data); err != nil {
+				if err := conn.WriteMessage(websocket.BinaryMessage, msg); err != nil {
 					log.Errorf("Client * %v", err)
 					continue
 				}
@@ -91,17 +86,18 @@ func main() {
 						var message *messages.Response = &messages.Response{}
 						_, data, err := conn.ReadMessage()
 						if err != nil {
-							if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
-								log.Errorf("Client reader * %v", err)
+							if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+								log.Errorf("Client error * : %v", err)
 							} else {
-								log.Printf("Client reader * server said: %v", err)
+								log.Infof("Client * : %v", err)
 							}
+
 							conn = nil
 							seq = 1
 							break
 						}
 
-						//unmarshal
+						// unmarshal
 						if err := json.Unmarshal(data, message); err != nil {
 							log.Errorf("Client reader cannot unmarshal * %v", err)
 						} else {
@@ -123,6 +119,9 @@ func main() {
 		fmt.Print("1. Establish connection \n")
 		fmt.Print("2. Send basic messages.Request message \n")
 		fmt.Print("3. Close connection \n")
+		fmt.Print("4. Request disconnect from server \n")
+		fmt.Print("5. Send Login Request \n")
+		fmt.Print("6. Test marshaling \n")
 		fmt.Scanln(&i)
 
 		if i == 0 {
@@ -132,12 +131,78 @@ func main() {
 			connectChan <- true
 		} else if i == 2 {
 			var YData *messages.Request = &messages.Request{
-				CmdType: messages.CmdExec,
-				Seq:     1,
+				CmdType:  messages.CmdExec,
+				Seq:      1,
+				DataType: 0,
 			}
-			sendChan <- YData
+			data, err := json.Marshal(YData)
+
+			if err != nil {
+				log.Errorf("Client cannot marshal : %v", err)
+			} else {
+				sendChan <- data
+			}
 		} else if i == 3 {
 			disconnectChan <- true
+		} else if i == 4 {
+			var YData *messages.Request = &messages.Request{
+				CmdType:  messages.CmdDisconnect,
+				Seq:      1,
+				DataType: game.TypeNothing,
+			}
+
+			data, err := json.Marshal(YData)
+
+			if err != nil {
+				log.Errorf("Client cannot marshal : %v", err)
+			} else {
+				log.Infoln("Client sending a disconnect request to server")
+				sendChan <- data
+			}
+
+		} else if i == 5 {
+			var YData = &game.RequestLogin{
+				Request: messages.Request{
+					CmdType:  messages.CmdExec,
+					Seq:      1,
+					DataType: int(game.TypeLogin),
+				},
+				PlayerId: "tanerius@gmail.com",
+				Password: "123123123",
+			}
+
+			data, err := json.Marshal(YData)
+
+			if err != nil {
+				log.Errorf("Client cannot marshal : %v", err)
+			} else {
+				log.Infof("Client sending %v", data)
+				sendChan <- data
+			}
+		} else if i == 6 {
+			var YData = &game.RequestLogin{
+				Request: messages.Request{
+					CmdType:  messages.CmdExec,
+					Seq:      1,
+					DataType: int(game.TypeLogin),
+				},
+				PlayerId: "tanerius@gmail.com",
+				Password: "123123123",
+			}
+
+			var result *messages.Request = &messages.Request{}
+
+			data, err := json.Marshal(YData)
+
+			if err != nil {
+				log.Errorf("Client cannot marshal : %v", err)
+			} else {
+				if err := json.Unmarshal(data, result); err != nil {
+					log.Errorf("Client cannot unmarshal : %v", err)
+				} else {
+					log.Infof("Client marshalling worked : %v", result)
+				}
+			}
 		}
 
 	}

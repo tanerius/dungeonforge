@@ -95,8 +95,8 @@ func (c *Client) writePump(toSend <-chan []byte) {
 		case message, ok := <-toSend:
 			if !ok {
 				// close when channel is closed
-				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")
-				c.cn.WriteMessage(websocket.CloseMessage, cm)
+				log.Debugf("%s sending bye to peer...\n", c.clientId)
+				c.cn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
