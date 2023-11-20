@@ -7,9 +7,8 @@ import (
 
 func main() {
 	var gameServer *game.DungeonForge = game.NewDungeonForge()
-	go gameServer.Run()
 
 	var server *server.SocketServer = server.NewSocketServer(gameServer)
-	server.StartHTTPServer()
+	server.StartHTTPServer(true)
 	select {}
 }

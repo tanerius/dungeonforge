@@ -24,16 +24,20 @@ func NewSocketServer(_gameServer GameServer) *SocketServer {
 	}
 }
 
-func (s *SocketServer) StartHTTPServer() {
+func (s *SocketServer) StartHTTPServer(dbg bool) {
+	if dbg {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	go func() {
-		log.Println("SocketServer * Starting HTTP server on port 40000 ...")
+		log.Infoln("SocketServer * Starting HTTP server on port 40000 ...")
 		http.HandleFunc("/ws", s.handleWebSocket)
 		http.ListenAndServe(":40000", nil)
 	}()
 }
 
 func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
-	log.Println("SocketServer * New client trying to connect ...")
+	log.Debugln("SocketServer * New client trying to connect ...")
 	c, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Errorf("SocketServer upgrade * %v \n", err)
@@ -41,14 +45,13 @@ func (s *SocketServer) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	playerConnection := newClient(c)
-	log.Println("SocketServer * Registering new client ...")
+	log.Debugln("SocketServer * Registering new client ...")
 
 	if err := s.gameServer.HandleClient(playerConnection); err != nil {
 		log.Errorf("SocketServer * gameserver said: %v ", err)
 		cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, err.Error())
 		playerConnection.cn.WriteMessage(websocket.CloseMessage, cm)
 		playerConnection.cn.Close()
-		close(playerConnection.toSend)
 	}
 
 }

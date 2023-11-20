@@ -1,7 +1,9 @@
 package server
 
 import (
+	"errors"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -11,35 +13,25 @@ import (
 
 // Server side representation of the connected client
 type Client struct {
-	clientId        uuid.UUID
-	cn              *websocket.Conn
-	gameCoordinator *Coordinator
-	toSend          chan *messages.Response // responses sent to users
-	closeRequested  bool
-	mu              sync.Mutex
-	lastSeq         int64
-	disconnectChan  chan string
+	clientId         string
+	cn               *websocket.Conn
+	started          bool
+	lastSeq          int64
+	ConnectionFailed chan struct{}
+	wg               sync.WaitGroup
+	pingTime         time.Time
 }
 
-type clients map[uuid.UUID]*Client
+type clients map[string]*Client
 
 func newClient(_c *websocket.Conn) *Client {
 	return &Client{
-		clientId:       uuid.New(),
-		cn:             _c,
-		closeRequested: false,
-		lastSeq:        0,
-		toSend:         make(chan *messages.Response),
-		disconnectChan: make(chan string),
+		clientId:         uuid.NewString(),
+		cn:               _c,
+		started:          false,
+		lastSeq:          0,
+		ConnectionFailed: make(chan struct{}),
 	}
-}
-
-// Starts the client read/write pump enabling communication ability
-func (c *Client) activateClientOnGameserver(_gameCoordinator *Coordinator) {
-	log.Printf("%s activating...\n", c.clientId.String())
-	c.gameCoordinator = _gameCoordinator
-	go c.writePump()
-	go c.readPump()
 }
 
 // readPump pumps messages from the websocket connection to the game coordinator.
@@ -47,37 +39,49 @@ func (c *Client) activateClientOnGameserver(_gameCoordinator *Coordinator) {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump() {
+func (c *Client) readPump(msgChan chan<- *messages.Request) {
 	defer func() {
-		c.gameCoordinator.Unregister <- c
+		c.wg.Done()
+		log.Debugf("%s read pump stopped.\n", c.clientId)
 	}()
-	//c.cn.SetReadLimit(maxMessageSize)
-	//c.cn.SetReadDeadline(time.Now().Add(pongWait))
-	//c.cn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-	log.Printf("%s read pump starting...\n", c.clientId.String())
+
+	log.Debugf("%s read pump starting...\n", c.clientId)
+
+	// if nothing is received in 15 seconds then kill connection
+	c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
+
+	c.cn.SetPongHandler(func(string) error {
+		// Reset read timer since pong was sent
+		duration := time.Since(c.pingTime)
+		log.Debugf("%s PING %dms \n", c.clientId, duration.Milliseconds())
+		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
+		return nil
+	})
+
+	var isLost bool = false
+
 	for {
-		var message *messages.Payload = &messages.Payload{}
+		var message *messages.Request = &messages.Request{}
+		isLost = false
+
 		err := c.cn.ReadJSON(message)
+
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
-				log.Errorf("%s: %v", c.clientId.String(), err)
+				log.Errorf("%s: %v", c.clientId, err)
 			}
-			break
+			isLost = true
+			message.CmdType = messages.CmdLost
 		}
 
 		// Append the UUID
 		message.ClientId = c.clientId
-
-		// check if out of sequence
-		if c.lastSeq+1 != message.Seq {
-			// out of sequence
-			log.Errorf("%s out of sequence: %v expected %d\n", c.clientId.String(), message, c.lastSeq+1)
+		c.lastSeq++
+		msgChan <- message
+		if isLost {
 			break
-		} else {
-			// SEND THE MESSAGE TO game
-			c.lastSeq++
-			c.gameCoordinator.PlayerMessagesChan <- message
 		}
+		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	}
 }
 
@@ -86,41 +90,69 @@ func (c *Client) readPump() {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump() {
-	//ticker := time.NewTicker(pingPeriod)
+func (c *Client) writePump(toSend <-chan *messages.Response) {
+
+	ticker := time.NewTicker(10 * time.Second)
+
 	defer func() {
-		log.Printf("%s closing connection...\n", c.clientId.String())
-		c.mu.Lock()
-		if !c.closeRequested {
-			c.closeRequested = true
-			c.gameCoordinator.Unregister <- c
-		}
-		c.mu.Unlock()
-		log.Printf("%s closed\n", c.clientId.String())
+		ticker.Stop()
+		c.wg.Done()
+		log.Debugf("%s write pump stopped.\n", c.clientId)
 	}()
 
-	log.Printf("%s write pump starting...\n", c.clientId.String())
+	log.Debugf("%s write pump starting...\n", c.clientId)
 
 	for {
 		select {
-		case message, ok := <-c.toSend:
-			if !ok {
-				log.Printf("%s sending channel closed\n", c.clientId.String())
-				// The hub closed the channel.
-				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, "bye")
-				c.cn.WriteMessage(websocket.CloseMessage, cm)
-				return
+		case message := <-toSend:
+
+			c.cn.SetWriteDeadline(time.Now().Add(12 * time.Second))
+			if message.Cmd == messages.CmdDisconnect {
+				cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, message.Msg)
+				if err := c.cn.WriteMessage(websocket.CloseMessage, cm); err != nil {
+					log.Errorf("%s writing close message * %v", c.clientId, err)
+					return
+				}
+			} else {
+				if err := c.cn.WriteJSON(message); err != nil {
+					log.Errorf("%s writing response * %v", c.clientId, err)
+					return
+				}
 			}
 
-			if err := c.cn.WriteJSON(message); err != nil {
-				log.Errorf("%s writing response * %v", c.clientId.String(), err)
+			ticker.Reset(10 * time.Second)
+
+		case <-ticker.C:
+			if err := c.cn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
-		case message, _ := <-c.disconnectChan:
-			// The close connection
-			cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, message)
-			c.cn.WriteMessage(websocket.CloseMessage, cm)
-			return
+			c.pingTime = time.Now()
+			c.cn.SetWriteDeadline(time.Now().Add(12 * time.Second))
 		}
+
 	}
+}
+
+func (c *Client) DeActivateClient() {
+	log.Debugf("%s deactivating... ", c.clientId)
+	c.cn.Close()
+	c.wg.Wait()
+	log.Debugf("%s deactivated ", c.clientId)
+}
+
+func (c *Client) ActivateClient(input <-chan *messages.Response, output chan<- *messages.Request) error {
+	if c.started {
+		return errors.New("client already activated")
+	}
+
+	c.started = true
+	c.wg.Add(2)
+	go c.writePump(input)
+	go c.readPump(output)
+
+	return nil
+}
+
+func (c *Client) ID() string {
+	return c.clientId
 }

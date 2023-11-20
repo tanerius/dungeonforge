@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
@@ -11,7 +12,7 @@ import (
 const wsServerEndpoont = "ws://localhost:40000/ws"
 
 func main() {
-	sendChan := make(chan *messages.Payload)
+	sendChan := make(chan *messages.Request)
 	quitChan := make(chan bool)
 	connectChan := make(chan bool)
 	disconnectChan := make(chan bool)
@@ -65,6 +66,15 @@ func main() {
 					continue
 				}
 
+				conn.SetPingHandler(func(a string) error {
+					log.Printf("received PING from server %s \n\n", wsServerEndpoont)
+					conn.SetWriteDeadline(time.Now().Add(5 * time.Second))
+					if err := conn.WriteMessage(websocket.PongMessage, nil); err != nil {
+						return err
+					}
+					return nil
+				})
+
 				log.Printf("Client * Client connected to server %s \n\n", wsServerEndpoont)
 
 				// starting reader too
@@ -97,7 +107,7 @@ func main() {
 		fmt.Print("Choices: \n")
 		fmt.Print("0. Quit \n")
 		fmt.Print("1. Establish connection \n")
-		fmt.Print("2. Send a random message \n")
+		fmt.Print("2. Send login message \n")
 		fmt.Print("3. Close connection \n")
 		fmt.Scanln(&i)
 
@@ -107,15 +117,7 @@ func main() {
 		} else if i == 1 {
 			connectChan <- true
 		} else if i == 2 {
-			var YData *messages.Payload = &messages.Payload{
-				Token: "y",
-				Seq:   seq,
-				Cmd:   messages.CmdValidate,
-				Data: messages.PersonJson{
-					Name: "Tanerius",
-					Age:  45,
-				},
-			}
+			var YData *messages.Request = &messages.Request{}
 			sendChan <- YData
 		} else if i == 3 {
 			disconnectChan <- true

@@ -2,11 +2,9 @@ package game
 
 import (
 	"errors"
-	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
 
@@ -19,9 +17,12 @@ type DungeonForge struct {
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *server.Coordinator
 	isRunning       bool
+	players         map[messages.PlayerID]string
 }
 
 func NewDungeonForge() *DungeonForge {
+	coordinator := server.NewCoordinator()
+	go coordinator.Run()
 
 	return &DungeonForge{
 		GameConfig: &server.GameConfig{
@@ -32,8 +33,9 @@ func NewDungeonForge() *DungeonForge {
 		},
 		serverId:        uuid.New(),
 		gameloop:        nil,
-		gameCoordinator: server.NewCoordinator(),
-		isRunning:       false,
+		gameCoordinator: coordinator,
+		isRunning:       true,
+		players:         make(map[messages.PlayerID]string),
 	}
 }
 
@@ -49,75 +51,82 @@ func (d *DungeonForge) Config() server.GameConfig {
 // A handler for new clients. Every new client should be handed off here!
 func (d *DungeonForge) HandleClient(_client *server.Client) error {
 	if !d.isRunning {
-		return errors.New("gameserver not running")
+		return errors.New("[s] not running")
 	}
 
-	go func() {
-		d.gameCoordinator.Register <- _client
-	}()
+	go d.processClient(_client)
 
 	return nil
 }
 
-// Run the gameserver
-func (d *DungeonForge) Run() {
-	log.Println("gameserver * starting...")
-	if d.isRunning {
-		log.Println("gameserver * alredy running")
+// Run a client
+func (d *DungeonForge) processClient(_client *server.Client) {
+	defer func() {
+		_client.DeActivateClient()
+		log.Infof("[s] deregistering %s ", _client.ID())
+		d.gameCoordinator.Unregister <- _client
+	}()
+
+	// TODO: make a timeout here
+	d.gameCoordinator.Register <- _client
+	var writeChan chan *messages.Response = make(chan *messages.Response)
+	var readChan chan *messages.Request = make(chan *messages.Request)
+
+	if err := _client.ActivateClient(writeChan, readChan); err != nil {
+		log.Error(err)
 		return
 	}
-	log.Println("gameserver * starting coordinator...")
-	go d.gameCoordinator.Run()
-	d.isRunning = true
-	ticker := time.NewTicker(3 * time.Second)
-	defer ticker.Stop()
 
-	log.Println("gameserver * going into main loop...")
 	for {
-		select {
-		case <-ticker.C:
-			// Perform game logic here.
-			// Update player data, calculate resources, etc.
-			// Send game updates to connected players via their player.conn.
-			/*
+		msg, ok := <-readChan
 
-				case c := <-gs.gameCoord.register:
-					// A new player has connected, you can perform any initialization here.
-					log.Println("New player connected. " + c.entityId.String())
+		if !ok {
+			log.Errorf("[s] can't read channel %s ", _client.ID())
+			return
+		}
 
-				case c := <-gs.gameCoord.unregister:
-					// A player has disconnected, you can perform any cleanup here.
-					log.Println("Player disconnected. " + c.entityId.String())
-			*/
-			connections, players := d.gameCoordinator.GetCounts()
-			log.Printf("gameserver * %d players / %d connections", players, connections)
-		case msg := <-d.gameCoordinator.PlayerMessagesChan:
-			log.Printf("gameserver * received %v", msg)
-			go d.ProcessMsg(msg)
+		// make sure its not disconnect
+		if msg.CmdType == messages.CmdLost {
+			log.Debugf("[s] lost sonnection to  %s ", _client.ID())
+			return
+		}
+
+		if msg.CmdType != messages.CmdExec {
+			log.Errorf("[s] unknown message from %s ", _client.ID())
+		} else {
+			log.Debugf("[s] data %s : %v ", _client.ID(), msg)
 		}
 	}
 
-}
-
-// This is the place where messages from clients are processed in the game
-func (d *DungeonForge) ProcessMsg(_msg *messages.Payload) {
-
-	// for now just answer the client with an empty message
-	resp := &messages.Response{
-		Ts:  time.Now().Unix(),
-		Sid: d.serverId.String(),
-		Data: &game.Response{
-			Ts:   time.Now().Unix(),
-			Code: game.RspNotAuthorised,
-			Msg:  "not authenticated",
-		},
-	}
-
-	d.gameCoordinator.SendMessageToClient(resp, _msg.ClientId)
+	/*
+		for {
+			select {
+			case msg := <-readChan:
+				// Read messsage from the client
+				log.Infof("Reading %v", msg)
+				if msg.Cmd == messages.CmdDisconnect {
+					log.Debugf("server received disconnect request from %s ", _client.ID())
+					writeChan <- &messages.Response{
+						Ts:  time.Now().Unix(),
+						Sid: d.serverId.String(),
+						Cmd: messages.CmdDisconnect,
+						Msg: "bye",
+					}
+					return
+				} else {
+					writeChan <- d.responseNotAuthorized()
+				}
+			case <-_client.DisconnectedChan:
+				// TODO: do all game disconnects here
+				log.Debugf("client %s disconnected", _client.ID())
+				return
+			}
+		}
+	*/
 }
 
 // Stop the gameserver
 func (d *DungeonForge) Stop() {
 	// TODO: Implement
-	d.isRunning = true
+	d.isRunning = false
 }
