@@ -64,6 +64,8 @@ func (c *Client) readPump(msgChan chan<- []byte) {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
 				log.Errorf("%s: %v", c.clientId, err)
 			}
+			// Close the channel to notify the server that there will be nothing to read anymore
+			close(msgChan)
 			return
 		}
 
