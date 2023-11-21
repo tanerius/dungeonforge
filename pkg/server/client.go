@@ -39,6 +39,7 @@ func newClient(_c *websocket.Conn) *Client {
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
 func (c *Client) readPump(msgChan chan<- []byte) {
+
 	defer func() {
 		c.wg.Done()
 		log.Debugf("%s read pump stopped.\n", c.clientId)
@@ -71,6 +72,7 @@ func (c *Client) readPump(msgChan chan<- []byte) {
 
 		c.lastSeq++
 		msgChan <- message
+
 		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	}
 }

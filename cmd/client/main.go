@@ -89,7 +89,7 @@ func main() {
 							if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 								log.Errorf("Client error * : %v", err)
 							} else {
-								log.Infof("Client * : %v", err)
+								log.Infof("Client * server closed the connection")
 							}
 
 							conn = nil
