@@ -3,6 +3,8 @@ package game
 import (
 	"encoding/json"
 	"errors"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -15,11 +17,12 @@ import (
 
 type DungeonForge struct {
 	*server.GameConfig
-	serverId        uuid.UUID
+	serverId        string
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *server.Coordinator
 	isRunning       bool
 	players         map[messages.PlayerID]string
+	mu              sync.Mutex
 }
 
 func NewDungeonForge() *DungeonForge {
@@ -33,7 +36,7 @@ func NewDungeonForge() *DungeonForge {
 			IsTurnBased: false,
 			IsRealtime:  false,
 		},
-		serverId:        uuid.New(),
+		serverId:        uuid.NewString(),
 		gameloop:        nil,
 		gameCoordinator: coordinator,
 		isRunning:       true,
@@ -63,6 +66,13 @@ func (d *DungeonForge) HandleClient(_client *server.Client) error {
 
 // Run a client
 func (d *DungeonForge) processClient(_client *server.Client) {
+
+	d.mu.Lock()
+	serverId := d.serverId
+	d.mu.Unlock()
+
+	token := uuid.NewString()
+
 	defer func() {
 		_client.DeActivateClient()
 		log.Infof("[s] deregistering %s ", _client.ID())
@@ -102,7 +112,7 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 			} else if msg.CmdType == messages.CmdExec {
 				switch msg.DataType {
 				case int(game.TypeLogin):
-					d.processLogin(stream, writeChan)
+					d.processLogin(serverId, token, stream, writeChan)
 				default:
 					log.Debugf("[s] data %v ", msg)
 				}
@@ -117,12 +127,23 @@ func (d *DungeonForge) Stop() {
 	d.isRunning = false
 }
 
-func (d *DungeonForge) processLogin(data []byte, writer chan<- []byte) {
+func (d *DungeonForge) processLogin(sid string, token string, data []byte, writer chan<- []byte) {
 	var loginInfo *game.RequestLogin = &game.RequestLogin{}
 
 	if err := json.Unmarshal(data, loginInfo); err != nil {
 		log.Errorf("[s] cannot unmarshal processLogin : %v", err)
 	} else {
 		log.Debugf("[s] login data %v ", loginInfo)
+		resp := &messages.Response{
+			Ts:      time.Now().Unix(),
+			Tokenid: token,
+			Sid:     sid,
+		}
+
+		if data, err := json.Marshal(resp); err != nil {
+			log.Errorf("[s] cannot marshal response : %v", err)
+		} else {
+			writer <- data
+		}
 	}
 }

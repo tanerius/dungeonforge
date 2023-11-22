@@ -15,8 +15,9 @@ type Request struct {
 }
 
 type Response struct {
-	Ts  int64  `json:"ts"`
-	Sid string `json:"sid"`
-	Cmd int    `json:"cmd"`
-	Msg string `json:"msg"`
+	Ts      int64  `json:"ts"`
+	Sid     string `json:"sid"`
+	Tokenid string `json:"tokenid"`
+	Cmd     int    `json:"cmd"`
+	Msg     string `json:"msg"`
 }
