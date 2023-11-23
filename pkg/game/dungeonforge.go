@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -110,9 +111,13 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 				close(writeChan)
 				return
 			} else if msg.CmdType == messages.CmdExec {
+				ctx := context.Background()
+
 				switch msg.DataType {
 				case int(game.TypeLogin):
-					d.processLogin(serverId, token, stream, writeChan)
+					if err := d.processLogin(ctx, serverId, token, stream, writeChan); err != nil {
+						log.Errorf("[s] %v ", err)
+					}
 				default:
 					log.Debugf("[s] data %v ", msg)
 				}
@@ -127,11 +132,14 @@ func (d *DungeonForge) Stop() {
 	d.isRunning = false
 }
 
-func (d *DungeonForge) processLogin(sid string, token string, data []byte, writer chan<- []byte) {
+func (d *DungeonForge) processLogin(ctx context.Context, sid string, token string, data []byte, writer chan<- []byte) error {
+	// Create a timeout for the operation
+	timeout := time.After(1 * time.Second)
+
 	var loginInfo *game.RequestLogin = &game.RequestLogin{}
 
 	if err := json.Unmarshal(data, loginInfo); err != nil {
-		log.Errorf("[s] cannot unmarshal processLogin : %v", err)
+		return err
 	} else {
 		log.Debugf("[s] login data %v ", loginInfo)
 		resp := &messages.Response{
@@ -141,9 +149,14 @@ func (d *DungeonForge) processLogin(sid string, token string, data []byte, write
 		}
 
 		if data, err := json.Marshal(resp); err != nil {
-			log.Errorf("[s] cannot marshal response : %v", err)
+			return err
 		} else {
-			writer <- data
+			select {
+			case writer <- data:
+				return nil
+			case <-timeout:
+				return errors.New("processLogin timeout")
+			}
 		}
 	}
 }
