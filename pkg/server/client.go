@@ -13,6 +13,7 @@ import (
 // Server side representation of the connected client
 type Client struct {
 	clientId         string
+	server           *Server
 	cn               *websocket.Conn
 	started          bool
 	lastSeq          int64
@@ -23,9 +24,10 @@ type Client struct {
 
 type clients map[string]*Client
 
-func newClient(_c *websocket.Conn) *Client {
+func newClient(_c *websocket.Conn, _s *Server) *Client {
 	return &Client{
 		clientId:         uuid.NewString(),
+		server:           _s,
 		cn:               _c,
 		started:          false,
 		lastSeq:          0,
