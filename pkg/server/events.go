@@ -36,6 +36,14 @@ func NewMessageEvent(_eventId events.EventIdType, _id string, _data []byte) *Mes
 	}
 }
 
+func (e *MessageEvent) Data() []byte {
+	return e.data
+}
+
+func (e *MessageEvent) ClientId() string {
+	return e.clientId
+}
+
 func (e *MessageEvent) EventId() events.EventIdType {
 	return e.eventId
 }

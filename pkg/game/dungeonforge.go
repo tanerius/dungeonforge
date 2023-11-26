@@ -1,31 +1,25 @@
 package game
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/dungeonforge/pkg/events"
-	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
+	gameevents "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
-
-	gameLoop "github.com/kutase/go-gameloop"
 )
 
 type DungeonForge struct {
 	*server.GameConfig
 	serverId        string
-	gameloop        *gameLoop.GameLoop
 	gameCoordinator *server.Coordinator
 	eventManager    *events.EventManager
 	isRunning       bool
 	players         map[messages.PlayerID]string
-	mu              sync.Mutex
+	gameMsgHandler  *GameMessageHandler
 }
 
 func NewDungeonForge(_hub *server.Coordinator, _em *events.EventManager) *DungeonForge {
@@ -37,7 +31,6 @@ func NewDungeonForge(_hub *server.Coordinator, _em *events.EventManager) *Dungeo
 			IsRealtime:  false,
 		},
 		serverId:        uuid.NewString(),
-		gameloop:        nil,
 		eventManager:    _em,
 		gameCoordinator: _hub,
 		isRunning:       true,
@@ -54,104 +47,51 @@ func (d *DungeonForge) Config() server.GameConfig {
 	}
 }
 
-// A handler for new clients. Every new client should be handed off here!
-func (d *DungeonForge) HandleClient(_client *server.Client) error {
-	if !d.isRunning {
-		return errors.New("[s] not running")
-	}
-
-	go d.processClient(_client)
-
-	return nil
-}
-
-// Handles communicationwith clients after registration to coordinator
-func (d *DungeonForge) processClient(_client *server.Client) {
-
-	d.mu.Lock()
-	serverId := d.serverId
-	d.mu.Unlock()
-
-	token := uuid.NewString()
-
-	defer func() {
-		log.Infof("[s] deregistering %s ", _client.ID())
-		// TODO: fix this
-		// d.gameCoordinator.Unregister <- _client
-	}()
-
-	// TODO: make a timeout here
-
-	var writeChan chan []byte = make(chan []byte)
-	var readChan chan []byte = make(chan []byte)
-
-	for {
-		stream, ok := <-readChan
-
-		if !ok {
-			log.Errorf("[s] can't read channel %s ", _client.ID())
-			return
-		}
-
-		var msg *messages.Request = &messages.Request{}
-		//var msg *game.RequestLogin = &game.RequestLogin{}
-
-		if err := json.Unmarshal(stream, msg); err != nil {
-			log.Errorf("[s] cannot unmarshal message from %s : %v", _client.ID(), err)
-		} else {
-			log.Debugf("[s] data %s : %v ", _client.ID(), msg)
-
-			if msg.CmdType == messages.CmdDisconnect {
-				// disconnecting client
-				close(writeChan)
-				return
-			} else if msg.CmdType == messages.CmdExec {
-				ctx := context.Background()
-
-				switch msg.DataType {
-				case int(game.TypeLogin):
-					if err := d.processLogin(ctx, serverId, token, stream, writeChan); err != nil {
-						log.Errorf("[s] %v ", err)
-					}
-				default:
-					log.Debugf("[s] data %v ", msg)
-				}
-			}
-		}
-	}
-}
-
-// Stop the gameserver
-func (d *DungeonForge) Stop() {
-	// TODO: Implement
-	d.isRunning = false
-}
-
-func (d *DungeonForge) processLogin(ctx context.Context, sid string, token string, data []byte, writer chan<- []byte) error {
-	// Create a timeout for the operation
-	timeout := time.After(1 * time.Second)
-
-	var loginInfo *game.RequestLogin = &game.RequestLogin{}
-
-	if err := json.Unmarshal(data, loginInfo); err != nil {
-		return err
-	} else {
-		log.Debugf("[s] login data %v ", loginInfo)
+// A handler for filtering message types
+func (d *DungeonForge) Handle(event events.Event) {
+	switch resolvedEvent := event.(type) {
+	case *gameevents.RequestLogin:
+		log.Infof("game login event %v %T", resolvedEvent, resolvedEvent)
 		resp := &messages.Response{
 			Ts:      time.Now().Unix(),
-			Tokenid: token,
-			Sid:     sid,
+			Tokenid: "testToken",
+			Sid:     d.serverId,
 		}
 
 		if data, err := json.Marshal(resp); err != nil {
-			return err
+			log.Error(err)
 		} else {
-			select {
-			case writer <- data:
-				return nil
-			case <-timeout:
-				return errors.New("processLogin timeout")
-			}
+			go d.gameCoordinator.SendMessageToClient(resolvedEvent.ClientId, data)
+			return
 		}
+		return
+	case *server.MessageEvent:
+		if resolvedEvent.EventId() == gameevents.GameEventDisconnect {
+			d.gameCoordinator.DisconnectClient(resolvedEvent.ClientId())
+			return
+		} else {
+			log.Warnf("game received an unhandled event %v %T", resolvedEvent, resolvedEvent)
+		}
+	default:
+		log.Warnf("game received an unhandled event %v %T", resolvedEvent, resolvedEvent)
 	}
+}
+
+// register to all events relevant for the game
+func (d *DungeonForge) RegisterHandlers() {
+	d.gameMsgHandler = NewMessageHandler(d.eventManager)
+	d.gameMsgHandler.RegisterEvents()
+
+	err := d.eventManager.RegisterHandler(gameevents.GameEventDisconnect, d)
+	if err != nil {
+		panic(err)
+	}
+	err = d.eventManager.RegisterHandler(gameevents.GameEventLogin, d)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (d *DungeonForge) RunsInOwnThread() bool {
+	return false
 }

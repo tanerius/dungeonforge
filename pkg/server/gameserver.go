@@ -1,6 +1,6 @@
 package server
 
-type GameServer interface {
+type GameServerss interface {
 	Config() GameConfig
 	HandleClient(*Client) error
 	Stop()

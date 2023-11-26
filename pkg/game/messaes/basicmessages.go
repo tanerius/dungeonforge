@@ -1,6 +1,14 @@
-package game
+package gameevents
 
-import "github.com/tanerius/dungeonforge/pkg/messages"
+import (
+	"github.com/tanerius/dungeonforge/pkg/events"
+	"github.com/tanerius/dungeonforge/pkg/messages"
+)
+
+const (
+	GameEventLogin      events.EventIdType = "gLogin"
+	GameEventDisconnect events.EventIdType = "gDisconnect"
+)
 
 const (
 	TypeNothing int = iota // nothing
@@ -12,6 +20,11 @@ type RequestLogin struct {
 	messages.Request
 	PlayerId string `json:"pid,omitempty"`
 	Password string `json:"pass,omitempty"`
+	ClientId string `json:"cid,omitempty"`
+}
+
+func (e *RequestLogin) EventId() events.EventIdType {
+	return GameEventLogin
 }
 
 type RspCode int
