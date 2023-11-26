@@ -129,6 +129,8 @@ func (c *Client) writePump(toSend <-chan []byte) {
 func (c *Client) DeActivateClient() {
 	log.Debugf("%s deactivating... ", c.clientId)
 	c.cn.Close()
+	disconnectEvent := NewClientDisonnectedEvent(c.clientId)
+	c.server.eventManager.Dispatch(disconnectEvent)
 	c.wg.Wait()
 	log.Debugf("%s deactivated ", c.clientId)
 }
