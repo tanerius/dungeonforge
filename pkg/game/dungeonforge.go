@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/events"
 	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
@@ -21,15 +22,13 @@ type DungeonForge struct {
 	serverId        string
 	gameloop        *gameLoop.GameLoop
 	gameCoordinator *server.Coordinator
+	eventManager    *events.EventManager
 	isRunning       bool
 	players         map[messages.PlayerID]string
 	mu              sync.Mutex
 }
 
-func NewDungeonForge() *DungeonForge {
-	coordinator := server.NewCoordinator()
-	go coordinator.Run()
-
+func NewDungeonForge(_hub *server.Coordinator, _em *events.EventManager) *DungeonForge {
 	return &DungeonForge{
 		GameConfig: &server.GameConfig{
 			GameId:      1,
@@ -39,7 +38,8 @@ func NewDungeonForge() *DungeonForge {
 		},
 		serverId:        uuid.NewString(),
 		gameloop:        nil,
-		gameCoordinator: coordinator,
+		eventManager:    _em,
+		gameCoordinator: _hub,
 		isRunning:       true,
 		players:         make(map[messages.PlayerID]string),
 	}
@@ -65,7 +65,7 @@ func (d *DungeonForge) HandleClient(_client *server.Client) error {
 	return nil
 }
 
-// Run a client
+// Handles communicationwith clients after registration to coordinator
 func (d *DungeonForge) processClient(_client *server.Client) {
 
 	d.mu.Lock()
@@ -75,20 +75,15 @@ func (d *DungeonForge) processClient(_client *server.Client) {
 	token := uuid.NewString()
 
 	defer func() {
-		_client.DeActivateClient()
 		log.Infof("[s] deregistering %s ", _client.ID())
-		d.gameCoordinator.Unregister <- _client
+		// TODO: fix this
+		// d.gameCoordinator.Unregister <- _client
 	}()
 
 	// TODO: make a timeout here
-	d.gameCoordinator.Register <- _client
+
 	var writeChan chan []byte = make(chan []byte)
 	var readChan chan []byte = make(chan []byte)
-
-	if err := _client.ActivateClient(writeChan, readChan); err != nil {
-		log.Error(err)
-		return
-	}
 
 	for {
 		stream, ok := <-readChan

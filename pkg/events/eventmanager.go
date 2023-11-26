@@ -50,9 +50,10 @@ func NewEventManager() *EventManager {
 func (m *EventManager) Dispatch(event Event) error {
 	select {
 	case m.eventQueue <- event:
+		log.Infof("[Server] DONE ... %v", event)
 		return nil
 	default:
-		return fmt.Errorf("failed to dispatch event id %s", event.EventId())
+		return fmt.Errorf("[EVT] failed to dispatch event id %s", event.EventId())
 	}
 }
 
@@ -83,18 +84,18 @@ func (m *EventManager) RegisterHandler(_id EventIdType, _h EventHandler) error {
 func (m *EventManager) Run() {
 	defer func() {
 		m.running = false
-		log.Info("[EVENT] Event manager quitting")
+		log.Info("[EVT] Event manager quitting")
 	}()
 	m.running = true
 
-	log.Info("[EVENT] Event manager running")
+	log.Info("[EVT] Event manager running")
 
 	for {
 		select {
 
 		case e := <-m.eventQueue:
 			if listeners, ok := m.eventListeners[e.EventId()]; ok {
-				log.Infof("[EVENT] %s", e.EventId())
+				log.Infof("[EVT] dispatching %s to %d listeners", e.EventId(), len(listeners))
 				for _, handler := range listeners {
 					if handler.RunsInOwnThread() {
 						go handler.Handle(e)
@@ -103,7 +104,7 @@ func (m *EventManager) Run() {
 					}
 				}
 			} else {
-				log.Errorf("[EVENT] event %s not registered ", e.EventId())
+				log.Errorf("[EVT] event %s not registered ", e.EventId())
 			}
 		case _, ok := <-m.quit:
 			if !ok {

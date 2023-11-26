@@ -9,17 +9,14 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Server struct {
-	gameServer   GameServer
+type SocketServer struct {
 	upgrader     *websocket.Upgrader
 	eventManager *events.EventManager
 }
 
-func NewServer(_gameServer GameServer, _eventManager *events.EventManager) *Server {
+func NewSocketServer(_eventManager *events.EventManager) *SocketServer {
 
-	return &Server{
-		gameServer:   _gameServer,
-		eventManager: _eventManager,
+	return &SocketServer{
 		upgrader: &websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -27,10 +24,11 @@ func NewServer(_gameServer GameServer, _eventManager *events.EventManager) *Serv
 				return true
 			},
 		},
+		eventManager: _eventManager,
 	}
 }
 
-func (s *Server) StartServer(dbg bool) {
+func (s *SocketServer) StartServer(dbg bool) {
 	if dbg {
 		log.SetLevel(log.DebugLevel)
 	}
@@ -47,17 +45,9 @@ func (s *Server) StartServer(dbg bool) {
 			return
 		}
 
-		playerConnection := newClient(c, s)
-		connectionEvent := NewClientConnectedEvent(playerConnection)
+		playerConnection := newClient(c, s.eventManager)
+		connectionEvent := NewClientEvent(events.EventClientConnected, playerConnection.clientId, playerConnection)
 		s.eventManager.Dispatch(connectionEvent)
-
-		if err := s.gameServer.HandleClient(playerConnection); err != nil {
-			log.Errorf("[Server] gameserver said: %v ", err)
-			cm := websocket.FormatCloseMessage(websocket.CloseNormalClosure, err.Error())
-			playerConnection.cn.WriteMessage(websocket.CloseMessage, cm)
-			playerConnection.cn.Close()
-		}
-
 	}
 
 	log.Infoln("[Server] Starting HTTP server on port 40000 ...")

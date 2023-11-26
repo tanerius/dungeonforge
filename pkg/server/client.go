@@ -8,30 +8,33 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
+	"github.com/tanerius/dungeonforge/pkg/events"
 )
 
 // Server side representation of the connected client
 type Client struct {
 	clientId         string
-	server           *Server
+	eventManager     *events.EventManager
 	cn               *websocket.Conn
 	started          bool
 	lastSeq          int64
 	ConnectionFailed chan struct{}
 	wg               sync.WaitGroup
 	pingTime         time.Time
+	sendChannel      chan []byte
 }
 
 type clients map[string]*Client
 
-func newClient(_c *websocket.Conn, _s *Server) *Client {
+func newClient(_c *websocket.Conn, _e *events.EventManager) *Client {
 	return &Client{
 		clientId:         uuid.NewString(),
-		server:           _s,
+		eventManager:     _e,
 		cn:               _c,
 		started:          false,
 		lastSeq:          0,
 		ConnectionFailed: make(chan struct{}),
+		sendChannel:      make(chan []byte),
 	}
 }
 
@@ -40,9 +43,10 @@ func newClient(_c *websocket.Conn, _s *Server) *Client {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump(msgChan chan<- []byte) {
+func (c *Client) readPump() {
 
 	defer func() {
+		c.eventManager.Dispatch(NewClientEvent(events.EventClientDisconnected, c.clientId, nil))
 		c.wg.Done()
 		log.Debugf("%s read pump stopped.\n", c.clientId)
 	}()
@@ -67,13 +71,11 @@ func (c *Client) readPump(msgChan chan<- []byte) {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure) {
 				log.Errorf("%s: %v", c.clientId, err)
 			}
-			// Close the channel to notify the server that there will be nothing to read anymore
-			close(msgChan)
 			return
 		}
 
 		c.lastSeq++
-		msgChan <- message
+		c.eventManager.Dispatch(NewMessageEvent(events.EventMessageReceived, c.clientId, message))
 
 		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	}
@@ -84,7 +86,7 @@ func (c *Client) readPump(msgChan chan<- []byte) {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump(toSend <-chan []byte) {
+func (c *Client) writePump() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
@@ -98,7 +100,7 @@ func (c *Client) writePump(toSend <-chan []byte) {
 
 	for {
 		select {
-		case message, ok := <-toSend:
+		case message, ok := <-c.sendChannel:
 			if !ok {
 				// close when channel is closed
 				log.Debugf("%s sending bye to peer...\n", c.clientId)
@@ -126,24 +128,24 @@ func (c *Client) writePump(toSend <-chan []byte) {
 	}
 }
 
-func (c *Client) DeActivateClient() {
+// shuts down currently connected client
+func (c *Client) deActivateClient() {
 	log.Debugf("%s deactivating... ", c.clientId)
 	c.cn.Close()
-	disconnectEvent := NewClientDisonnectedEvent(c.clientId)
-	c.server.eventManager.Dispatch(disconnectEvent)
+	close(c.sendChannel)
 	c.wg.Wait()
 	log.Debugf("%s deactivated ", c.clientId)
 }
 
-func (c *Client) ActivateClient(input <-chan []byte, output chan<- []byte) error {
+func (c *Client) activateClient() error {
 	if c.started {
 		return errors.New("client already activated")
 	}
 
 	c.started = true
 	c.wg.Add(2)
-	go c.writePump(input)
-	go c.readPump(output)
+	go c.writePump()
+	go c.readPump()
 
 	return nil
 }
