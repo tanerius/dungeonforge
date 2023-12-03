@@ -4,10 +4,11 @@ import (
 	"github.com/tanerius/dungeonforge/pkg/messages"
 )
 
+// these are all he events that can happen in the game
+// starting them from 50 as the first 50 might be systemmessages
 const (
-	TypeNothing int = 50 // nothing
-	TypeLogin   int = 51 // Login player
-	TypeLogout  int = 52 // Logout player
+	GameEventLogin  int = 50 // Login player
+	GameEventLogout int = 51 // Logout player
 )
 
 type RequestLogin struct {

@@ -76,7 +76,7 @@ func (c *Client) readPump() {
 		}
 
 		c.lastSeq++
-		event := eventgoround.NewEvent(EventMsgReceived, message)
+		event := eventgoround.NewEvent(EventMsgReceived, NewMessageEvent(c.clientId, message))
 		c.eventManager.DispatchEvent(event)
 
 		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))

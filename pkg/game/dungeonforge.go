@@ -1,13 +1,8 @@
 package game
 
 import (
-	"encoding/json"
-	"time"
-
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/events"
-	gameevents "github.com/tanerius/dungeonforge/pkg/game/messaes"
+	"github.com/tanerius/EventGoRound/eventgoround"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
 )
@@ -16,13 +11,12 @@ type DungeonForge struct {
 	*server.GameConfig
 	serverId        string
 	gameCoordinator *server.Coordinator
-	eventManager    *events.EventManager
+	eventManager    *eventgoround.EventManager
 	isRunning       bool
-	players         map[messages.PlayerID]string
-	gameMsgHandler  *GameMessageHandler
+	players         map[messages.PlayerID]*player
 }
 
-func NewDungeonForge(_hub *server.Coordinator, _em *events.EventManager) *DungeonForge {
+func NewDungeonForge(_hub *server.Coordinator, _em *eventgoround.EventManager) *DungeonForge {
 	return &DungeonForge{
 		GameConfig: &server.GameConfig{
 			GameId:      1,
@@ -34,8 +28,9 @@ func NewDungeonForge(_hub *server.Coordinator, _em *events.EventManager) *Dungeo
 		eventManager:    _em,
 		gameCoordinator: _hub,
 		isRunning:       true,
-		players:         make(map[messages.PlayerID]string),
+		players:         make(map[messages.PlayerID]*player),
 	}
+
 }
 
 func (d *DungeonForge) Config() server.GameConfig {
@@ -47,6 +42,7 @@ func (d *DungeonForge) Config() server.GameConfig {
 	}
 }
 
+/*
 // A handler for filtering message types
 func (d *DungeonForge) Handle(event events.Event) {
 	switch resolvedEvent := event.(type) {
@@ -76,20 +72,11 @@ func (d *DungeonForge) Handle(event events.Event) {
 		log.Warnf("game received an unhandled event %v %T", resolvedEvent, resolvedEvent)
 	}
 }
+*/
 
 // register to all events relevant for the game
 func (d *DungeonForge) RegisterHandlers() {
-	d.gameMsgHandler = NewMessageHandler(d.eventManager)
-	d.gameMsgHandler.RegisterEvents()
-
-	err := d.eventManager.RegisterHandler(gameevents.GameEventDisconnect, d)
-	if err != nil {
-		panic(err)
-	}
-	err = d.eventManager.RegisterHandler(gameevents.GameEventLogin, d)
-	if err != nil {
-		panic(err)
-	}
+	d.eventManager.RegisterListener(NewGameMessageHandler(d))
 }
 
 func (d *DungeonForge) RunsInOwnThread() bool {

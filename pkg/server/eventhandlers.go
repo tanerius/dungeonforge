@@ -12,9 +12,10 @@ type DisconnectHandler struct {
 func (h *DisconnectHandler) HandleEvent(_event *eventgoround.Event) {
 	client, err := eventgoround.GetEventData[*ClientEvent](_event)
 	if err != nil {
-		go h.coordinator.UnregisterClient(client.clientId)
-	} else {
 		log.Error(err)
+	} else {
+
+		go h.coordinator.DisconnectClient(client.clientId)
 	}
 }
 
@@ -33,11 +34,12 @@ type ConnectHandler struct {
 }
 
 func (h *ConnectHandler) HandleEvent(_event *eventgoround.Event) {
+	log.Debugln("[ConnectHandler] Handling connect event ...")
 	client, err := eventgoround.GetEventData[*ClientEvent](_event)
 	if err != nil {
-		go h.coordinator.RegisterClient(client.client)
-	} else {
 		log.Error(err)
+	} else {
+		go h.coordinator.RegisterClient(client.client)
 	}
 }
 

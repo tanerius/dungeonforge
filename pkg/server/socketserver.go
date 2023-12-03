@@ -46,7 +46,9 @@ func (s *SocketServer) StartServer(dbg bool) {
 		}
 
 		playerConnection := newClient(c, s.eventManager)
+		log.Debugln("[Server] Create connect event ...")
 		event := eventgoround.NewEvent(EventClientConnect, NewClientEvent(playerConnection.clientId, playerConnection))
+		log.Debugln("[Server] Dispatch connect event ...")
 		s.eventManager.DispatchPriorityEvent(event)
 	}
 

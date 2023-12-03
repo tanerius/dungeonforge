@@ -148,7 +148,7 @@ func main() {
 			var YData *messages.Request = &messages.Request{
 				CmdType:  messages.CmdDisconnect,
 				Seq:      1,
-				DataType: game.TypeNothing,
+				DataType: 0,
 			}
 
 			data, err := json.Marshal(YData)
@@ -165,7 +165,7 @@ func main() {
 				Request: messages.Request{
 					CmdType:  messages.CmdExec,
 					Seq:      1,
-					DataType: int(game.TypeLogin),
+					DataType: 1,
 				},
 				PlayerId: "tanerius@gmail.com",
 				Password: "123123123",
@@ -184,7 +184,7 @@ func main() {
 				Request: messages.Request{
 					CmdType:  messages.CmdExec,
 					Seq:      1,
-					DataType: int(game.TypeLogin),
+					DataType: 1,
 				},
 				PlayerId: "tanerius@gmail.com",
 				Password: "123123123",

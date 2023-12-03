@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/tanerius/EventGoRound/eventgoround"
+	"github.com/tanerius/dungeonforge/pkg/game"
 	"github.com/tanerius/dungeonforge/pkg/server"
 )
 
@@ -15,7 +16,8 @@ func main() {
 	coordinator.RegisterHandlers()
 	go coordinator.Run()
 
-	//var gameServer *game.DungeonForge = game.NewDungeonForge(coordinator, eventManager)
+	var gameServer *game.DungeonForge = game.NewDungeonForge(coordinator, eventManager)
+	gameServer.RegisterHandlers()
 
 	var server *server.SocketServer = server.NewSocketServer(eventManager)
 	go server.StartServer(true)

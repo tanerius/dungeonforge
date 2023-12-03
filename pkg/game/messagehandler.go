@@ -4,70 +4,49 @@ import (
 	"encoding/json"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/events"
-	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
-	gameevents "github.com/tanerius/dungeonforge/pkg/game/messaes"
+	"github.com/tanerius/EventGoRound/eventgoround"
 	"github.com/tanerius/dungeonforge/pkg/messages"
 	"github.com/tanerius/dungeonforge/pkg/server"
 )
 
+// This is a handle to determines what type of game message
 type GameMessageHandler struct {
-	eventManager *events.EventManager
+	game *DungeonForge
 }
 
-func NewMessageHandler(_em *events.EventManager) *GameMessageHandler {
+func NewGameMessageHandler(_g *DungeonForge) *GameMessageHandler {
 	return &GameMessageHandler{
-		eventManager: _em,
+		game: _g,
 	}
 }
 
-func (m *GameMessageHandler) RegisterEvents() {
-	err := m.eventManager.RegisterHandler(events.EventMessageReceived, m)
-	if err != nil {
-		panic(err)
-	}
-
+func (h *GameMessageHandler) Type() int {
+	return server.EventMsgReceived
 }
 
-func (m *GameMessageHandler) Handle(event events.Event) {
-	log.Debugln("GOT MESSAGE")
-	switch resolvedEvent := event.(type) {
-	case *server.MessageEvent:
+func (m *GameMessageHandler) HandleEvent(_event *eventgoround.Event) {
+	log.Debugln("[GameMessageHandler] handling event")
+	msgEvent, err := eventgoround.GetEventData[*server.MessageEvent](_event)
+	if err == nil {
 		var msg *messages.Request = &messages.Request{}
-		clientId := resolvedEvent.ClientId()
-		//var msg *game.RequestLogin = &game.RequestLogin{}
+		clientId := msgEvent.ClientId()
 
-		if err := json.Unmarshal(resolvedEvent.Data(), msg); err != nil {
-			log.Errorf("[s] cannot unmarshal message from %s : %v", clientId, err)
+		if err := json.Unmarshal(msgEvent.Data(), msg); err != nil {
+			log.Errorf("[GameMessageHandler] cannot unmarshal message from %s : %v", clientId, err)
 			return
 		} else {
 			log.Debugf("[s] data %s : %v ", clientId, msg)
 
 			if msg.CmdType == messages.CmdDisconnect {
 				// client requested disconnect
-				m.eventManager.Dispatch(server.NewMessageEvent(gameevents.GameEventLogin, clientId, nil))
+				log.Debug("DISPATCH DISCONNECT EVENT")
 				return
 			} else if msg.CmdType == messages.CmdExec {
-				switch msg.DataType {
-				case int(game.TypeLogin):
-					var loginInfo *game.RequestLogin = &game.RequestLogin{}
-					if err := json.Unmarshal(resolvedEvent.Data(), loginInfo); err != nil {
-						log.Error(err)
-						return
-					} else {
-						loginInfo.ClientId = clientId
-						m.eventManager.Dispatch(loginInfo)
-					}
-				default:
-					log.Errorf("unhandled game message type %v \n", msg)
-				}
+				log.Debug("DISPATCH EXEC EVENT")
 			}
 		}
-	default:
-		log.Warnf("messageHandler received an unhandled event %v %T", resolvedEvent, resolvedEvent)
-	}
-}
 
-func (m *GameMessageHandler) RunsInOwnThread() bool {
-	return true
+	} else {
+		log.Error(err)
+	}
 }
