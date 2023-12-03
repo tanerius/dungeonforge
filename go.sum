@@ -19,8 +19,8 @@ github.com/sirupsen/logrus v1.9.3/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVs
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/tanerius/EventGoRound v1.0.0 h1:1f1qZ9vQcfPt44lwan4OXyQcZguvfxQABwk5u2Qif/0=
-github.com/tanerius/EventGoRound v1.0.0/go.mod h1:dHn8/D2eGx8HWYMPsMENnfSNJ/gOkjCsEgz3xuVIN9U=
+github.com/tanerius/EventGoRound v1.0.2 h1:AJLmxIYK/gyNdX/KNyApx3T8uPRjyuOpfkW0QfQ82r8=
+github.com/tanerius/EventGoRound v1.0.2/go.mod h1:xFzwvFwA1zQZPNLGLpH4PaGDZACFEJbVG/NrsRUhYoA=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.1.2/go.mod h1:RT/sEzTbU5y00aCK8UOx6R7YryM0iF1N2MOmC3kKLN4=
 github.com/xdg-go/stringprep v1.0.4/go.mod h1:mPGuuIYwz7CmR2bT9j4GbQqutWS1zV24gijq1dTyGkM=
