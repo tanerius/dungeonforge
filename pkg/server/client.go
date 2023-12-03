@@ -8,13 +8,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/events"
+	"github.com/tanerius/EventGoRound/eventgoround"
 )
 
 // Server side representation of the connected client
 type Client struct {
 	clientId         string
-	eventManager     *events.EventManager
+	eventManager     *eventgoround.EventManager
 	cn               *websocket.Conn
 	started          bool
 	lastSeq          int64
@@ -26,7 +26,7 @@ type Client struct {
 
 type clients map[string]*Client
 
-func newClient(_c *websocket.Conn, _e *events.EventManager) *Client {
+func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *Client {
 	return &Client{
 		clientId:         uuid.NewString(),
 		eventManager:     _e,
@@ -46,7 +46,8 @@ func newClient(_c *websocket.Conn, _e *events.EventManager) *Client {
 func (c *Client) readPump() {
 
 	defer func() {
-		c.eventManager.Dispatch(NewClientEvent(events.EventClientDisconnected, c.clientId, nil))
+		event := eventgoround.NewEvent(EventClientDisconnect, NewClientEvent(c.clientId, c))
+		c.eventManager.DispatchPriorityEvent(event)
 		c.wg.Done()
 		log.Debugf("%s read pump stopped.\n", c.clientId)
 	}()
@@ -75,7 +76,8 @@ func (c *Client) readPump() {
 		}
 
 		c.lastSeq++
-		c.eventManager.Dispatch(NewMessageEvent(events.EventMessageReceived, c.clientId, message))
+		event := eventgoround.NewEvent(EventMsgReceived, message)
+		c.eventManager.DispatchEvent(event)
 
 		c.cn.SetReadDeadline(time.Now().Add(15 * time.Second))
 	}

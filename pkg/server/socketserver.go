@@ -4,17 +4,17 @@ import (
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/events"
+	"github.com/tanerius/EventGoRound/eventgoround"
 
 	"github.com/gorilla/websocket"
 )
 
 type SocketServer struct {
 	upgrader     *websocket.Upgrader
-	eventManager *events.EventManager
+	eventManager *eventgoround.EventManager
 }
 
-func NewSocketServer(_eventManager *events.EventManager) *SocketServer {
+func NewSocketServer(_eventManager *eventgoround.EventManager) *SocketServer {
 
 	return &SocketServer{
 		upgrader: &websocket.Upgrader{
@@ -46,8 +46,8 @@ func (s *SocketServer) StartServer(dbg bool) {
 		}
 
 		playerConnection := newClient(c, s.eventManager)
-		connectionEvent := NewClientEvent(events.EventClientConnected, playerConnection.clientId, playerConnection)
-		s.eventManager.Dispatch(connectionEvent)
+		event := eventgoround.NewEvent(EventClientConnect, NewClientEvent(playerConnection.clientId, playerConnection))
+		s.eventManager.DispatchPriorityEvent(event)
 	}
 
 	log.Infoln("[Server] Starting HTTP server on port 40000 ...")

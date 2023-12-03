@@ -11,6 +11,7 @@ require (
 	github.com/kutase/go-gameloop v0.0.0-20170519135933-c298c6a8258b // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/tanerius/EventGoRound v0.0.0-20231202205605-d28fa3703740 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

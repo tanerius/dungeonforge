@@ -4,16 +4,12 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/tanerius/dungeonforge/pkg/events"
+	"github.com/tanerius/EventGoRound/eventgoround"
 	"github.com/tanerius/dungeonforge/pkg/server"
 )
 
 func main() {
-	var eventManager *events.EventManager = events.NewEventManager()
-	eventManager.RegisterEventType(events.EventClientConnected)    // event for when the client makes a websocket connection
-	eventManager.RegisterEventType(events.EventClientDisconnected) // event for when client disconnects its socket connection
-	eventManager.RegisterEventType(events.EventClientRegistered)   // event fires when client registered to hub
-	eventManager.RegisterEventType(events.EventMessageReceived)    // event fires when client receives a message
+	var eventManager *eventgoround.EventManager = eventgoround.NewEventManager()
 
 	var coordinator *server.Coordinator = server.NewCoordinator(eventManager)
 	coordinator.RegisterHandlers()

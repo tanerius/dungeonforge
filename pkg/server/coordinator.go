@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
-	"github.com/tanerius/dungeonforge/pkg/events"
+	"github.com/tanerius/EventGoRound/eventgoround"
 )
 
 // This is the connection coordinator responsible for keeping connection pools synced to a game server.
@@ -13,7 +13,7 @@ import (
 type Coordinator struct {
 	id                string
 	activeConnections clients
-	eventManager      *events.EventManager
+	eventManager      *eventgoround.EventManager
 	register          chan *Client
 	unregister        chan string
 	broadcastChan     chan *MessageEvent
@@ -22,7 +22,7 @@ type Coordinator struct {
 }
 
 // Create a new Coordinator
-func NewCoordinator(_em *events.EventManager) *Coordinator {
+func NewCoordinator(_em *eventgoround.EventManager) *Coordinator {
 	return &Coordinator{
 		id:                uuid.NewString(), // handle this in case of panic
 		activeConnections: make(clients),
@@ -35,25 +35,18 @@ func NewCoordinator(_em *events.EventManager) *Coordinator {
 	}
 }
 
-// Events handler handler
-func (hub *Coordinator) Handle(event events.Event) {
-	switch resolvedEvent := event.(type) {
-	case *ClientEvent:
-		if resolvedEvent.EventId() == events.EventClientConnected {
-			hub.register <- resolvedEvent.client
-		} else if resolvedEvent.EventId() == events.EventClientDisconnected {
-			hub.unregister <- resolvedEvent.clientId
-		}
-	default:
-		log.Warnf("coordinator received an unhandled event %v %T", resolvedEvent, resolvedEvent)
-	}
+func (hub *Coordinator) RegisterClient(_client *Client) {
+	hub.register <- _client
+}
+
+func (hub *Coordinator) UnregisterClient(_clientId string) {
+	hub.unregister <- _clientId
 }
 
 // broadcast to all clients blocks
 func (hub *Coordinator) BroadcastToAllClients(_data []byte) {
 	msg := &MessageEvent{
-		data:    _data,
-		eventId: events.EventNull,
+		data: _data,
 	}
 	hub.broadcastChan <- msg
 }
@@ -66,14 +59,8 @@ func (hub *Coordinator) DisconnectClient(_clientId string) {
 // register to handle necessary messages
 func (hub *Coordinator) RegisterHandlers() {
 	// register connection and disonnection events
-	err := hub.eventManager.RegisterHandler(events.EventClientConnected, hub)
-	if err != nil {
-		panic(err)
-	}
-	err = hub.eventManager.RegisterHandler(events.EventClientDisconnected, hub)
-	if err != nil {
-		panic(err)
-	}
+	hub.eventManager.RegisterListener(NewConnectHandler(hub))
+	hub.eventManager.RegisterListener(NewDisconnectHandler(hub))
 }
 
 // Run the Coordinator
@@ -87,7 +74,8 @@ func (hub *Coordinator) Run() {
 			log.Debugf("Coordinator * Client %s connected \n", c.clientId)
 			hub.activeConnections[c.clientId] = c
 			c.activateClient()
-			hub.eventManager.Dispatch(NewClientEvent(events.EventClientRegistered, c.clientId, c))
+			event := eventgoround.NewEvent(EventClientRegistered, NewClientEvent(c.clientId, c))
+			c.eventManager.DispatchPriorityEvent(event)
 		// UNREGISTER CONNECTION
 		case c := <-hub.unregister:
 			if _, ok := hub.activeConnections[c]; ok {
@@ -137,7 +125,6 @@ func (hub *Coordinator) SendMessageToClient(_clientId string, _data []byte) {
 	msg := &MessageEvent{
 		clientId: _clientId,
 		data:     _data,
-		eventId:  events.EventNull,
 	}
 	hub.sendToClient <- msg
 }
