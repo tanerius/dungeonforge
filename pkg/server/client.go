@@ -13,28 +13,26 @@ import (
 
 // Server side representation of the connected client
 type Client struct {
-	clientId         string
-	eventManager     *eventgoround.EventManager
-	cn               *websocket.Conn
-	started          bool
-	lastSeq          int64
-	ConnectionFailed chan struct{}
-	wg               sync.WaitGroup
-	pingTime         time.Time
-	sendChannel      chan []byte
+	clientId     string
+	eventManager *eventgoround.EventManager
+	cn           *websocket.Conn
+	started      bool
+	lastSeq      int64
+	wg           sync.WaitGroup
+	pingTime     time.Time
+	sendChannel  chan []byte
 }
 
 type clients map[string]*Client
 
 func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *Client {
 	return &Client{
-		clientId:         uuid.NewString(),
-		eventManager:     _e,
-		cn:               _c,
-		started:          false,
-		lastSeq:          0,
-		ConnectionFailed: make(chan struct{}),
-		sendChannel:      make(chan []byte),
+		clientId:     uuid.NewString(),
+		eventManager: _e,
+		cn:           _c,
+		started:      false,
+		lastSeq:      0,
+		sendChannel:  make(chan []byte),
 	}
 }
 

@@ -39,7 +39,7 @@ func (hub *Coordinator) RegisterClient(_client *Client) {
 	hub.register <- _client
 }
 
-func (hub *Coordinator) UnregisterClient(_clientId string) {
+func (hub *Coordinator) unregisterClient(_clientId string) {
 	hub.unregister <- _clientId
 }
 
