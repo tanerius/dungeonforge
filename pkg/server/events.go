@@ -9,10 +9,10 @@ const (
 
 type ClientEvent struct {
 	clientId string
-	client   *Client
+	client   *client
 }
 
-func NewClientEvent(_id string, _client *Client) *ClientEvent {
+func NewClientEvent(_id string, _client *client) *ClientEvent {
 	return &ClientEvent{
 		clientId: _id,
 		client:   _client,

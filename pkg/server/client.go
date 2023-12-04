@@ -12,7 +12,7 @@ import (
 )
 
 // Server side representation of the connected client
-type Client struct {
+type client struct {
 	clientId     string
 	eventManager *eventgoround.EventManager
 	cn           *websocket.Conn
@@ -23,10 +23,10 @@ type Client struct {
 	sendChannel  chan []byte
 }
 
-type clients map[string]*Client
+type clients map[string]*client
 
-func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *Client {
-	return &Client{
+func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *client {
+	return &client{
 		clientId:     uuid.NewString(),
 		eventManager: _e,
 		cn:           _c,
@@ -41,7 +41,7 @@ func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *Client {
 // The application runs readPump in a per-connection goroutine. The application
 // ensures that there is at most one reader on a connection by executing all
 // reads from this goroutine.
-func (c *Client) readPump() {
+func (c *client) readPump() {
 
 	defer func() {
 		event := eventgoround.NewEvent(EventClientDisconnect, NewClientEvent(c.clientId, c))
@@ -86,7 +86,7 @@ func (c *Client) readPump() {
 // A goroutine running writePump is started for each connection. The
 // application ensures that there is at most one writer to a connection by
 // executing all writes from this goroutine.
-func (c *Client) writePump() {
+func (c *client) writePump() {
 
 	ticker := time.NewTicker(10 * time.Second)
 
@@ -129,7 +129,7 @@ func (c *Client) writePump() {
 }
 
 // shuts down currently connected client
-func (c *Client) deActivateClient() {
+func (c *client) deActivateClient() {
 	log.Debugf("%s deactivating... ", c.clientId)
 	c.cn.Close()
 	close(c.sendChannel)
@@ -137,7 +137,7 @@ func (c *Client) deActivateClient() {
 	log.Debugf("%s deactivated ", c.clientId)
 }
 
-func (c *Client) activateClient() error {
+func (c *client) activateClient() error {
 	if c.started {
 		return errors.New("client already activated")
 	}
@@ -150,6 +150,6 @@ func (c *Client) activateClient() error {
 	return nil
 }
 
-func (c *Client) ID() string {
+func (c *client) ID() string {
 	return c.clientId
 }

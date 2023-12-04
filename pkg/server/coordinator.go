@@ -14,7 +14,7 @@ type Coordinator struct {
 	id                string
 	activeConnections clients
 	eventManager      *eventgoround.EventManager
-	register          chan *Client
+	register          chan *client
 	unregister        chan string
 	broadcastChan     chan *MessageEvent
 	sendToClient      chan *MessageEvent
@@ -27,7 +27,7 @@ func NewCoordinator(_em *eventgoround.EventManager) *Coordinator {
 		id:                uuid.NewString(), // handle this in case of panic
 		activeConnections: make(clients),
 		eventManager:      _em,
-		register:          make(chan *Client),
+		register:          make(chan *client),
 		unregister:        make(chan string),
 		broadcastChan:     make(chan *MessageEvent, 5),
 		sendToClient:      make(chan *MessageEvent, 10),
@@ -35,12 +35,8 @@ func NewCoordinator(_em *eventgoround.EventManager) *Coordinator {
 	}
 }
 
-func (hub *Coordinator) RegisterClient(_client *Client) {
+func (hub *Coordinator) RegisterClient(_client *client) {
 	hub.register <- _client
-}
-
-func (hub *Coordinator) unregisterClient(_clientId string) {
-	hub.unregister <- _clientId
 }
 
 // broadcast to all clients blocks
