@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var (
@@ -13,6 +14,16 @@ var (
 	testDB      = "testdb"
 	testColl    = "testcoll"
 )
+
+type Player struct {
+	ID         primitive.ObjectID `bson:"_id,omitempty"`
+	IdStr      string
+	Name       string   `bson:"name,omitempty"`
+	Email      string   `bson:"email,omitempty"`
+	Tags       []string `bson:"tags,omitempty"`
+	Level      int      `bson:"level,omitempty"`
+	RandomsTag string
+}
 
 func TestMain(m *testing.M) {
 	testWrapper = NewMongoDBWrapper("mongodb://dungeonmaster:m123123123@localhost:27017/", 10)
@@ -38,45 +49,79 @@ func clearCollection() {
 func TestCreateDocument(t *testing.T) {
 	clearCollection()
 
-	doc := bson.D{{"name", "John Doe"}, {"age", 30}}
-	_, err := testWrapper.CreateDocument(testDB, testColl, doc)
-	if err != nil {
-		t.Fatalf("CreateDocument failed: %v", err)
+	docPlayer := &Player{
+		Name:       "Tanerius",
+		IdStr:      "",
+		Email:      "tanerius@player.com",
+		Tags:       []string{"a", "b", "c", "d"},
+		Level:      1,
+		RandomsTag: "Some Tag Does Not get Saved",
 	}
 
-	// TODO: verify the document was correctly inserted
+	inserted, err := testWrapper.CreateDocument(testDB, testColl, docPlayer)
+	if err != nil {
+		t.Fatalf("CreateDocument failed: %v", err)
+	} else {
+		if oid, ok := inserted.InsertedID.(primitive.ObjectID); ok {
+			docPlayer.IdStr = oid.String()
+		} else {
+			// Not objectid.ObjectID, do what you want
+			t.Fatalf("CreateDocument didnt return an oid")
+		}
+
+		if docPlayer.IdStr == "" {
+			t.Fatalf("CreateDocument empty string")
+		}
+	}
 }
 
 func TestGetDocument(t *testing.T) {
 	clearCollection()
 
-	doc := bson.D{{"name", "Jane Doe"}, {"age", 25}}
-	testWrapper.CreateDocument(testDB, testColl, doc)
+	docPlayer := &Player{
+		Name:       "Tanerius",
+		IdStr:      "",
+		Email:      "tanerius@player.com",
+		Tags:       []string{"a", "b", "c", "d"},
+		Level:      1,
+		RandomsTag: "TestGetDocument",
+	}
 
-	result, err := testWrapper.GetDocument(testDB, testColl, bson.D{{"name", "Jane Doe"}})
+	testWrapper.CreateDocument(testDB, testColl, docPlayer)
+
+	result, err := testWrapper.GetDocument(testDB, testColl, bson.D{{"email", "tanerius@player.com"}})
 	if err != nil {
 		t.Fatalf("GetDocument failed: %v", err)
 	}
 
-	var retrievedDoc bson.D
+	var retrievedDoc Player
 	if err := result.Decode(&retrievedDoc); err != nil {
 		t.Fatalf("Decode failed: %v", err)
 	}
 
-	// TODO: verify the retrieved document is correct
+	if retrievedDoc.Name != "Tanerius" {
+		t.Fatalf("Invalid document: %v", retrievedDoc)
+	}
 }
 
 func TestUpdateDocument(t *testing.T) {
 	clearCollection()
 
-	doc := bson.D{{"name", "John Doe"}, {"age", 30}}
-	testWrapper.CreateDocument(testDB, testColl, doc)
+	docPlayer := &Player{
+		Name:       "Tanerius",
+		IdStr:      "",
+		Email:      "tanerius@player.com",
+		Tags:       []string{"a", "b", "c", "d"},
+		Level:      1,
+		RandomsTag: "TestUpdateDocument",
+	}
 
-	update := bson.D{{"$set", bson.D{{"age", 31}}}}
-	_, err := testWrapper.UpdateDocument(testDB, testColl, bson.D{{"name", "John Doe"}}, update)
+	testWrapper.CreateDocument(testDB, testColl, docPlayer)
+
+	update := bson.D{{"$set", bson.D{{"name", "UpdatedTanerius"}}}}
+	_, err := testWrapper.UpdateDocument(testDB, testColl, bson.D{{"email", "tanerius@player.com"}}, update)
 	if err != nil {
 		t.Fatalf("UpdateDocument failed: %v", err)
 	}
 
-	// TODO: verify the document was correctly updated
 }

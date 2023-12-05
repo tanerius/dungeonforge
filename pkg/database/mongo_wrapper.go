@@ -42,14 +42,32 @@ func (wrapper *MongoDBWrapper) CreateDocument(database, collection string, docum
 	return result, err
 }
 
+func (wrapper *MongoDBWrapper) CreateDocuments(database, collection string, documents []interface{}) (*mongo.InsertManyResult, error) {
+	coll := wrapper.client.Database(database).Collection(collection)
+	results, err := coll.InsertMany(context.Background(), documents)
+	return results, err
+}
+
 func (wrapper *MongoDBWrapper) GetDocument(database, collection string, filter interface{}) (*mongo.SingleResult, error) {
 	coll := wrapper.client.Database(database).Collection(collection)
 	result := coll.FindOne(context.Background(), filter)
 	return result, result.Err()
 }
 
+func (wrapper *MongoDBWrapper) GetDocuments(database, collection string, filter interface{}) (*mongo.Cursor, error) {
+	coll := wrapper.client.Database(database).Collection(collection)
+	result, err := coll.Find(context.Background(), filter)
+	return result, err
+}
+
 func (wrapper *MongoDBWrapper) UpdateDocument(database, collection string, filter, update interface{}) (*mongo.UpdateResult, error) {
 	coll := wrapper.client.Database(database).Collection(collection)
 	result, err := coll.UpdateOne(context.Background(), filter, update)
+	return result, err
+}
+
+func (wrapper *MongoDBWrapper) UpdateDocuments(database, collection string, filter, update interface{}) (*mongo.UpdateResult, error) {
+	coll := wrapper.client.Database(database).Collection(collection)
+	result, err := coll.UpdateMany(context.Background(), filter, update)
 	return result, err
 }
