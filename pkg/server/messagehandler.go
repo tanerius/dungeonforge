@@ -29,6 +29,7 @@ func (m *ClientMessageHandler) HandleEvent(_event *eventgoround.Event) {
 	msgEvent, err := eventgoround.GetEventData[*MessageEvent](_event)
 	if err == nil {
 		m.streamProcessor.ProcessData(msgEvent.ClientId(), msgEvent.Data())
+		log.Debugln(msgEvent.Data())
 	} else {
 		log.Error(err)
 	}

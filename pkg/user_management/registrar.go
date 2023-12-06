@@ -32,6 +32,10 @@ func (r *Registrar) Run() {
 
 	dcHandler := NewUserDisconnectHandler(r)
 	r.eventManager.RegisterListener(dcHandler)
+
+	userMessageHandler := NewUserMessageHandler()
+	r.eventManager.RegisterListener(userMessageHandler)
+
 	select {}
 }
 
