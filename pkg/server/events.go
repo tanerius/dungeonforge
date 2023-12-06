@@ -12,6 +12,10 @@ type ClientEvent struct {
 	client   *client
 }
 
+func (c *ClientEvent) ClientId() string {
+	return c.clientId
+}
+
 func NewClientEvent(_id string, _client *client) *ClientEvent {
 	return &ClientEvent{
 		clientId: _id,

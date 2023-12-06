@@ -34,6 +34,7 @@ func (s *SocketServer) StartServer(dbg bool) {
 	}
 
 	healthCheckHandler := func(w http.ResponseWriter, r *http.Request) {
+		log.Debugln("[Server] Healthcheck ...")
 		w.WriteHeader(http.StatusOK)
 	}
 

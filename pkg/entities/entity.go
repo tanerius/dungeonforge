@@ -18,3 +18,10 @@ func NewEntity() *Entity {
 		ID:  uuid.NewString(),
 	}
 }
+
+func (e *Entity) Id() string {
+	if e._ID == primitive.NilObjectID {
+		return ""
+	}
+	return e._ID.String()
+}

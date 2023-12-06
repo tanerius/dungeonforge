@@ -1,14 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/gorilla/websocket"
 	log "github.com/sirupsen/logrus"
-	game "github.com/tanerius/dungeonforge/pkg/game/messaes"
-	"github.com/tanerius/dungeonforge/pkg/messages"
 )
 
 const wsServerEndpoont = "ws://localhost:40000/ws"
@@ -83,8 +80,7 @@ func main() {
 				// starting reader too
 				go func() {
 					for {
-						var message *messages.Response = &messages.Response{}
-						_, data, err := conn.ReadMessage()
+						_, _, err := conn.ReadMessage()
 						if err != nil {
 							if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 								log.Errorf("Client error * : %v", err)
@@ -96,14 +92,6 @@ func main() {
 							seq = 1
 							break
 						}
-
-						// unmarshal
-						if err := json.Unmarshal(data, message); err != nil {
-							log.Errorf("Client reader cannot unmarshal * %v", err)
-						} else {
-							log.Printf("Client * Received: %v \n", message)
-						}
-
 					}
 				}()
 			}
@@ -130,79 +118,15 @@ func main() {
 		} else if i == 1 {
 			connectChan <- true
 		} else if i == 2 {
-			var YData *messages.Request = &messages.Request{
-				CmdType:  messages.CmdExec,
-				Seq:      1,
-				DataType: 0,
-			}
-			data, err := json.Marshal(YData)
 
-			if err != nil {
-				log.Errorf("Client cannot marshal : %v", err)
-			} else {
-				sendChan <- data
-			}
 		} else if i == 3 {
 			disconnectChan <- true
 		} else if i == 4 {
-			var YData *messages.Request = &messages.Request{
-				CmdType:  messages.CmdDisconnect,
-				Seq:      1,
-				DataType: 0,
-			}
-
-			data, err := json.Marshal(YData)
-
-			if err != nil {
-				log.Errorf("Client cannot marshal : %v", err)
-			} else {
-				log.Infoln("Client sending a disconnect request to server")
-				sendChan <- data
-			}
 
 		} else if i == 5 {
-			var YData = &game.RequestLogin{
-				Request: messages.Request{
-					CmdType:  messages.CmdExec,
-					Seq:      1,
-					DataType: 1,
-				},
-				PlayerId: "tanerius@gmail.com",
-				Password: "123123123",
-			}
 
-			data, err := json.Marshal(YData)
-
-			if err != nil {
-				log.Errorf("Client cannot marshal : %v", err)
-			} else {
-				log.Infof("Client sending %v", data)
-				sendChan <- data
-			}
 		} else if i == 6 {
-			var YData = &game.RequestLogin{
-				Request: messages.Request{
-					CmdType:  messages.CmdExec,
-					Seq:      1,
-					DataType: 1,
-				},
-				PlayerId: "tanerius@gmail.com",
-				Password: "123123123",
-			}
 
-			var result *messages.Request = &messages.Request{}
-
-			data, err := json.Marshal(YData)
-
-			if err != nil {
-				log.Errorf("Client cannot marshal : %v", err)
-			} else {
-				if err := json.Unmarshal(data, result); err != nil {
-					log.Errorf("Client cannot unmarshal : %v", err)
-				} else {
-					log.Infof("Client marshalling worked : %v", result)
-				}
-			}
 		}
 
 	}
