@@ -54,6 +54,12 @@ func (wrapper *MongoDBWrapper) GetDocument(database, collection string, filter i
 	return result, result.Err()
 }
 
+func (wrapper *MongoDBWrapper) GetDocumentWithUpdate(database, collection string, filter interface{}, update interface{}) (*mongo.SingleResult, error) {
+	coll := wrapper.client.Database(database).Collection(collection)
+	result := coll.FindOneAndUpdate(context.Background(), filter, update)
+	return result, result.Err()
+}
+
 func (wrapper *MongoDBWrapper) GetDocuments(database, collection string, filter interface{}) (*mongo.Cursor, error) {
 	coll := wrapper.client.Database(database).Collection(collection)
 	result, err := coll.Find(context.Background(), filter)

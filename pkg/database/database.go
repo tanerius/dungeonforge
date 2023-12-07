@@ -3,6 +3,7 @@ package database
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"time"
 
 	"github.com/tanerius/dungeonforge/pkg/entities"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +25,12 @@ func NewDatabase() *DBWrapper {
 }
 
 func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
-	result, err := d.db.GetDocument(entities.GameDB, entities.UsersCollection, bson.M{"email": email, "pass": GetMD5Hash(pass)})
+	// 6) Create the update
+	update := bson.M{
+		"$set": bson.M{"lastSeen": time.Now().Unix()},
+	}
+
+	result, err := d.db.GetDocumentWithUpdate(entities.GameDB, entities.UsersCollection, bson.M{"email": email, "password": GetMD5Hash(pass)}, update)
 	if err != nil {
 		return nil, err
 	}
