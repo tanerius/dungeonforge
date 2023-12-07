@@ -1,6 +1,9 @@
 package usermanagement
 
 import (
+	"errors"
+
+	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/EventGoRound/eventgoround"
 	"github.com/tanerius/dungeonforge/pkg/entities"
 )
@@ -33,10 +36,42 @@ func (r *Registrar) Run() {
 	dcHandler := NewUserDisconnectHandler(r)
 	r.eventManager.RegisterListener(dcHandler)
 
-	userMessageHandler := NewUserMessageHandler()
+	userMessageHandler := NewUserMessageHandler(r)
 	r.eventManager.RegisterListener(userMessageHandler)
 
 	select {}
+}
+
+func (r *Registrar) logout(cid string, data map[string]interface{}) {
+	if ok, err := r.isValudUser(cid, data); !ok {
+		log.Error(err)
+		return
+	}
+
+	r.disconnectClient(cid)
+}
+
+func (r *Registrar) isValudUser(cid string, data map[string]interface{}) (bool, error) {
+	userId, ok := r.clientToUser[cid]
+	if ok {
+		user, userok := r.onlineUsers[userId]
+		if !userok {
+			return false, errors.New("user not online")
+		}
+
+		token, okToken := data["token"]
+		if !okToken {
+			return false, errors.New("invalid user token")
+		}
+
+		if user.Token != token.(string) {
+			return false, errors.New("spoofed user")
+		}
+
+		return true, nil
+	}
+
+	return false, errors.New("spoofed peer")
 }
 
 func (r *Registrar) disconnectUser(uid string) {
