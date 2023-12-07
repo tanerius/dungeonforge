@@ -2,6 +2,11 @@ package entities
 
 import "time"
 
+const (
+	GameDB          string = "gameDB"
+	UsersCollection string = "users"
+)
+
 // a container for users
 type User struct {
 	*Entity  `bson:",inline"`

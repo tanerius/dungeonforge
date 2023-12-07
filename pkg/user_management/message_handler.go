@@ -27,7 +27,7 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 	log.Debugln("[_UserMessageHandler] handling event")
 	msgEvent, err := eventgoround.GetEventData[*server.MessageEvent](_event)
 	if err == nil {
-		var jsonMap map[string]interface{}
+		var jsonMap map[string]string
 		err := json.Unmarshal(msgEvent.Data(), &jsonMap)
 
 		if err != nil {
