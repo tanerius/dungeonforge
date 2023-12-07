@@ -48,6 +48,17 @@ func (wrapper *MongoDBWrapper) CreateDocuments(database, collection string, docu
 	return results, err
 }
 
+func (wrapper *MongoDBWrapper) Exists(database, collection string, filter interface{}) int64 {
+	coll := wrapper.client.Database(database).Collection(collection)
+	result, err := coll.CountDocuments(context.Background(), filter)
+
+	if err != nil {
+		result = 0
+	}
+
+	return result
+}
+
 func (wrapper *MongoDBWrapper) GetDocument(database, collection string, filter interface{}) (*mongo.SingleResult, error) {
 	coll := wrapper.client.Database(database).Collection(collection)
 	result := coll.FindOne(context.Background(), filter)

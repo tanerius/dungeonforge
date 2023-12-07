@@ -5,7 +5,9 @@ import (
 
 	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/EventGoRound/eventgoround"
+	"github.com/tanerius/dungeonforge/pkg/database"
 	"github.com/tanerius/dungeonforge/pkg/entities"
+	"github.com/tanerius/dungeonforge/pkg/server"
 )
 
 const (
@@ -18,13 +20,17 @@ type Registrar struct {
 	onlineUsers  map[string]*entities.User
 	clientToUser map[string]string
 	eventManager *eventgoround.EventManager
+	database     *database.DBWrapper
+	coordinator  *server.Coordinator
 }
 
-func NewRegistrar(_em *eventgoround.EventManager) *Registrar {
+func NewRegistrar(_em *eventgoround.EventManager, _db *database.DBWrapper, _c *server.Coordinator) *Registrar {
 	return &Registrar{
 		onlineUsers:  make(map[string]*entities.User),
 		clientToUser: make(map[string]string),
 		eventManager: _em,
+		database:     _db,
+		coordinator:  _c,
 	}
 }
 
@@ -42,7 +48,7 @@ func (r *Registrar) Run() {
 	select {}
 }
 
-func (r *Registrar) logout(cid string, data map[string]interface{}) {
+func (r *Registrar) logout(cid string, data map[string]string) {
 	if ok, err := r.isValudUser(cid, data); !ok {
 		log.Error(err)
 		return
@@ -51,7 +57,8 @@ func (r *Registrar) logout(cid string, data map[string]interface{}) {
 	r.disconnectClient(cid)
 }
 
-func (r *Registrar) isValudUser(cid string, data map[string]interface{}) (bool, error) {
+func (r *Registrar) isValudUser(cid string, data map[string]string) (bool, error) {
+	//TODO: validate token
 	userId, ok := r.clientToUser[cid]
 	if ok {
 		user, userok := r.onlineUsers[userId]
@@ -64,7 +71,7 @@ func (r *Registrar) isValudUser(cid string, data map[string]interface{}) (bool, 
 			return false, errors.New("invalid user token")
 		}
 
-		if user.Token != token.(string) {
+		if user.Token != token {
 			return false, errors.New("spoofed user")
 		}
 
@@ -76,6 +83,7 @@ func (r *Registrar) isValudUser(cid string, data map[string]interface{}) (bool, 
 
 func (r *Registrar) disconnectUser(uid string) {
 	// do database disconnection here and remove from onlineUsers
+	r.database.Logout(uid)
 	// TODO: probably a good idea to make this thread safe
 	delete(r.onlineUsers, uid)
 }

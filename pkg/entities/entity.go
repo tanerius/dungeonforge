@@ -1,27 +1,24 @@
 package entities
 
 import (
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-//Entity
+// Entity
 type Entity struct {
-	_ID primitive.ObjectID `bson:"_id,omitempty"`
-	ID  string             `bson:"id,omitempty" json:"id"`
+	Id primitive.ObjectID `bson:"_id,omitempty"`
 }
 
-//Create a new entity
-func NewEntity() *Entity {
+// Create a new entity
+func NewEntity(_oid primitive.ObjectID) *Entity {
 	return &Entity{
-		_ID: primitive.NewObjectID(),
-		ID:  uuid.NewString(),
+		Id: _oid,
 	}
 }
 
-func (e *Entity) Id() string {
-	if e._ID == primitive.NilObjectID {
+func (e *Entity) ID() string {
+	if e.Id == primitive.NilObjectID {
 		return ""
 	}
-	return e._ID.String()
+	return e.Id.Hex()
 }

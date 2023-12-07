@@ -1,6 +1,10 @@
 package entities
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
 
 const (
 	GameDB          string = "gameDB"
@@ -9,12 +13,12 @@ const (
 
 // a container for users
 type User struct {
-	*Entity  `bson:",inline"`
-	Email    string    `bson:"email,omitempty" json:"email"`
-	Password string    `bson:"password,omitempty" json:"password"`
-	Token    string    `bson:"token,omitempty" json:"token"`
-	Created  time.Time `bson:"Created,omitempty" json:"created"`
-	LastSeen time.Time `bson:"Created,omitempty" json:"lastSeen"`
-	IsOnline bool      `bson:"online,omitempty" json:"online"`
-	ClientId string
+	ID       primitive.ObjectID `bson:"_id,omitempty" json:"-"`
+	Email    string             `bson:"email,omitempty" json:"email"`
+	Password string             `bson:"password,omitempty" json:"password"`
+	Token    string             `bson:"token,omitempty" json:"token"`
+	Created  time.Time          `bson:"created,omitempty" json:"created"`
+	LastSeen time.Time          `bson:"lastseen,omitempty" json:"lastseen"`
+	IsOnline bool               `bson:"online,omitempty" json:"online"`
+	ClientId string             `json:"-"`
 }

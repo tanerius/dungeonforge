@@ -33,12 +33,36 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 		if err != nil {
 			log.Error(err)
 		} else {
+			log.Printf("message %v", jsonMap)
 			val, ok := jsonMap["act"]
 			if !ok {
 				log.Errorf("malformed %s", msgEvent.ClientId())
 				return
 			} else {
 				switch val {
+				case "register":
+					valEmail, okEmail := jsonMap["email"]
+					valPass, okPass := jsonMap["pass"]
+					if !(okEmail && okPass) {
+						log.Errorf("malformed register %s", msgEvent.ClientId())
+						return
+					}
+					if usr, err := h.registrar.database.Register(valEmail, valPass); err != nil {
+						log.Errorln(err)
+					} else {
+						log.Debugf("%v", usr)
+						h.registrar.clientToUser[msgEvent.ClientId()] = usr.ID.Hex()
+						h.registrar.onlineUsers[usr.ID.Hex()] = usr
+						b, err := json.Marshal(usr)
+						if err != nil {
+							log.Errorln(err)
+						} else {
+							go func() {
+								h.registrar.coordinator.SendMessageToClient(msgEvent.ClientId(), b)
+							}()
+						}
+					}
+
 				case "login":
 					// player wants to login
 
@@ -47,11 +71,11 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 					h.registrar.disconnectClient(msgEvent.ClientId())
 				default:
 					//any other case is a game message providing the player is logged in and provides a token
-					if ok, _ := h.registrar.isValudUser(msgEvent.ClientId(), jsonMap); ok {
+					if ok, _ := h.registrar.isValudUser(msgEvent.ClientId(), nil); ok {
 						gameMessage := &game.GameMessageEvent{
 							ClientId: msgEvent.ClientId(),
 							UserId:   h.registrar.clientToUser[msgEvent.ClientId()],
-							Data:     jsonMap,
+							Data:     nil,
 						}
 
 						event := eventgoround.NewEvent(game.GameMsg, gameMessage)

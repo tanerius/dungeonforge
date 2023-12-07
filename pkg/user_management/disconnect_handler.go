@@ -30,6 +30,7 @@ func (m *UserDisconnectHandler) HandleEvent(_event *eventgoround.Event) {
 			// client is actually a user
 			m.registrar.disconnectUser(userId)
 			delete(m.registrar.clientToUser, msgEvent.ClientId())
+			m.registrar.database.Logout(userId)
 		}
 
 	} else {
