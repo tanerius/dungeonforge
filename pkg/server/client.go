@@ -13,26 +13,28 @@ import (
 
 // Server side representation of the connected client
 type client struct {
-	clientId     string
-	eventManager *eventgoround.EventManager
-	cn           *websocket.Conn
-	started      bool
-	lastSeq      int64
-	wg           sync.WaitGroup
-	pingTime     time.Time
-	sendChannel  chan []byte
+	clientId      string
+	eventManager  *eventgoround.EventManager
+	cn            *websocket.Conn
+	started       bool
+	lastSeq       int64
+	wg            sync.WaitGroup
+	pingTime      time.Time
+	sendChannel   chan []byte
+	channelClosed bool
 }
 
 type clients map[string]*client
 
 func newClient(_c *websocket.Conn, _e *eventgoround.EventManager) *client {
 	return &client{
-		clientId:     uuid.NewString(),
-		eventManager: _e,
-		cn:           _c,
-		started:      false,
-		lastSeq:      0,
-		sendChannel:  make(chan []byte),
+		clientId:      uuid.NewString(),
+		eventManager:  _e,
+		cn:            _c,
+		started:       false,
+		lastSeq:       0,
+		sendChannel:   make(chan []byte),
+		channelClosed: false,
 	}
 }
 
@@ -132,7 +134,10 @@ func (c *client) writePump() {
 func (c *client) deActivateClient() {
 	log.Debugf("%s deactivating... ", c.clientId)
 	c.cn.Close()
-	close(c.sendChannel)
+	if !c.channelClosed {
+		close(c.sendChannel)
+		c.channelClosed = true
+	}
 	c.wg.Wait()
 	log.Debugf("%s deactivated ", c.clientId)
 }
