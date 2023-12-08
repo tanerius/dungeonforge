@@ -15,10 +15,10 @@ const (
 type User struct {
 	ID       primitive.ObjectID `bson:"_id,omitempty" json:"-"`
 	Email    string             `bson:"email,omitempty" json:"email"`
-	Password string             `bson:"password,omitempty" json:"password"`
+	Password string             `bson:"password,omitempty" json:"-"`
 	Token    string             `bson:"token,omitempty" json:"token"`
 	Created  time.Time          `bson:"created,omitempty" json:"created"`
 	LastSeen time.Time          `bson:"lastseen,omitempty" json:"lastseen"`
-	IsOnline bool               `bson:"online,omitempty" json:"online"`
+	IsOnline bool               `bson:"online,omitempty" json:"-"`
 	ClientId string             `json:"-"`
 }
