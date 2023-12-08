@@ -25,14 +25,7 @@ func (m *UserDisconnectHandler) HandleEvent(_event *eventgoround.Event) {
 	log.Debugln("[UserDisconnectHandler] handling event")
 	msgEvent, err := eventgoround.GetEventData[*server.ClientEvent](_event)
 	if err == nil {
-		userId, ok := m.registrar.clientToUser[msgEvent.ClientId()]
-		if ok {
-			// client is actually a user
-			m.registrar.disconnectUser(userId)
-			delete(m.registrar.clientToUser, msgEvent.ClientId())
-			m.registrar.database.Logout(userId)
-		}
-
+		m.registrar.disconnectClient(msgEvent.ClientId())
 	} else {
 		log.Error(err)
 	}

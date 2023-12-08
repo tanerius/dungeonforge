@@ -1,6 +1,7 @@
 package usermanagement
 
 import (
+	"encoding/json"
 	"errors"
 
 	log "github.com/sirupsen/logrus"
@@ -48,17 +49,74 @@ func (r *Registrar) Run() {
 	select {}
 }
 
-func (r *Registrar) logout(cid string, data map[string]string) {
-	if ok, err := r.isValudUser(cid, data); !ok {
+func (r *Registrar) login(_cid, _email, _pass string) {
+	if usr, err := r.database.Login(_email, _pass); err != nil {
+		log.Errorln(err)
+	} else {
+		usr.ClientId = _cid
+		usr.ResponseCode = entities.RespOK
+		usr.ResponseMsg = ""
+
+		r.clientToUser[_cid] = usr.ID.Hex()
+
+		// check if user already has a connection
+		existingUser, userFound := r.onlineUsers[usr.ID.Hex()]
+		if userFound {
+			usr.ResponseMsg = "relogin"
+			exId := existingUser.ClientId
+			// relogin required
+			r.onlineUsers[usr.ID.Hex()] = nil
+			if exId != usr.ClientId {
+				go r.coordinator.DisconnectClient(exId)
+			}
+		}
+
+		log.Debugf("%v", usr)
+		r.clientToUser[_cid] = usr.ID.Hex()
+		r.onlineUsers[usr.ID.Hex()] = usr
+		b, err := json.Marshal(usr)
+		if err != nil {
+			log.Error(err)
+		} else {
+			go func() {
+				r.coordinator.SendMessageToClient(_cid, b)
+			}()
+		}
+	}
+}
+
+func (r *Registrar) logout(cid, token string) {
+	if ok, err := r.isValudUser(cid, token); !ok {
 		log.Error(err)
 		return
 	}
-
+	go r.coordinator.DisconnectClient(cid)
 	r.disconnectClient(cid)
 }
 
-func (r *Registrar) isValudUser(cid string, data map[string]string) (bool, error) {
-	//TODO: validate token
+func (r *Registrar) register(_cid, _email, _pass string) {
+	if usr, err := r.database.Register(_email, _pass); err != nil {
+		log.Errorln(err)
+	} else {
+		log.Debugf("%v", usr)
+		usr.ClientId = _cid
+		usr.ResponseCode = entities.RespOK
+		usr.ResponseMsg = ""
+
+		r.clientToUser[_cid] = usr.ID.Hex()
+		r.onlineUsers[usr.ID.Hex()] = usr
+		b, err := json.Marshal(usr)
+		if err != nil {
+			log.Errorln(err)
+		} else {
+			go func() {
+				r.coordinator.SendMessageToClient(_cid, b)
+			}()
+		}
+	}
+}
+
+func (r *Registrar) isValudUser(cid string, token string) (bool, error) {
 	userId, ok := r.clientToUser[cid]
 	if ok {
 		user, userok := r.onlineUsers[userId]
@@ -66,9 +124,8 @@ func (r *Registrar) isValudUser(cid string, data map[string]string) (bool, error
 			return false, errors.New("user not online")
 		}
 
-		token, okToken := data["token"]
-		if !okToken {
-			return false, errors.New("invalid user token")
+		if user == nil {
+			return false, errors.New("no user")
 		}
 
 		if user.Token != token {
@@ -88,11 +145,12 @@ func (r *Registrar) disconnectUser(uid string) {
 	delete(r.onlineUsers, uid)
 }
 
-func (r *Registrar) disconnectClient(cid string) {
-	userId, ok := r.clientToUser[cid]
+func (r *Registrar) disconnectClient(_cid string) {
+	go r.coordinator.DisconnectClient(_cid)
+	userId, ok := r.clientToUser[_cid]
 	if ok {
 		// client is actually a user
 		r.disconnectUser(userId)
-		delete(r.clientToUser, cid)
+		delete(r.clientToUser, _cid)
 	}
 }

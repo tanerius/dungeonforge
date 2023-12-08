@@ -1,8 +1,10 @@
 package game
 
+import "github.com/tanerius/dungeonforge/pkg/entities"
+
 // Definition of game messages
 type GameMessageEvent struct {
 	ClientId string
-	UserId   string
-	Data     map[string]interface{}
+	User     *entities.User
+	Data     map[string]string
 }
