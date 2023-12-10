@@ -7,8 +7,8 @@ import (
 
 	"github.com/tanerius/EventGoRound/eventgoround"
 	"github.com/tanerius/dungeonforge/pkg/database"
+	lobby "github.com/tanerius/dungeonforge/pkg/lobby"
 	"github.com/tanerius/dungeonforge/pkg/server"
-	usermanagement "github.com/tanerius/dungeonforge/pkg/user_management"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 	var server *server.SocketServer = server.NewSocketServer(eventManager)
 	go server.StartServer(true)
 
-	var registrar *usermanagement.Registrar = usermanagement.NewRegistrar(eventManager, database, coordinator)
+	var registrar *lobby.Registrar = lobby.NewRegistrar(eventManager, database, coordinator)
 	go registrar.Run()
 
 	time.Sleep(1 * time.Second)
