@@ -51,69 +51,88 @@ func (r *Registrar) Run() {
 
 func (r *Registrar) login(_cid, _email, _pass string) {
 	if usr, err := r.database.Login(_email, _pass); err != nil {
-		log.Errorln(err)
+		usr = &entities.User{
+			ResponseCode: entities.RespLoginError,
+			ResponseMsg:  err.Error(),
+		}
+		if err := r.sendUserResponse(_cid, usr); err != nil {
+			log.Errorln(err)
+		}
 	} else {
 		usr.ClientId = _cid
 		usr.ResponseCode = entities.RespOK
-		usr.ResponseMsg = ""
+		usr.ResponseMsg = "login"
 
 		r.clientToUser[_cid] = usr.ID.Hex()
 
 		// check if user already has a connection
-		existingUser, userFound := r.onlineUsers[usr.ID.Hex()]
+		_, userFound := r.onlineUsers[usr.ID.Hex()]
 		if userFound {
 			usr.ResponseMsg = "relogin"
-			exId := existingUser.ClientId
 			// relogin required
 			r.onlineUsers[usr.ID.Hex()] = nil
-			if exId != usr.ClientId {
-				go r.coordinator.DisconnectClient(exId)
-			}
 		}
 
-		log.Debugf("%v", usr)
 		r.clientToUser[_cid] = usr.ID.Hex()
 		r.onlineUsers[usr.ID.Hex()] = usr
-		b, err := json.Marshal(usr)
-		if err != nil {
-			log.Error(err)
-		} else {
-			go func() {
-				r.coordinator.SendMessageToClient(_cid, b)
-			}()
+		if err := r.sendUserResponse(_cid, usr); err != nil {
+			log.Errorln(err)
 		}
 	}
 }
 
-func (r *Registrar) logout(cid, token string) {
-	if ok, err := r.isValudUser(cid, token); !ok {
+func (r *Registrar) logout(_cid, token string) {
+	if ok, err := r.isValudUser(_cid, token); !ok {
 		log.Error(err)
 		return
 	}
-	go r.coordinator.DisconnectClient(cid)
-	r.disconnectClient(cid)
+
+	usr := &entities.User{
+		ResponseCode: entities.RespOK,
+		ResponseMsg:  "logout",
+	}
+
+	if err := r.sendUserResponse(_cid, usr); err != nil {
+		log.Errorln(err)
+	}
+
+	r.disconnectClient(_cid)
 }
 
 func (r *Registrar) register(_cid, _email, _pass string) {
 	if usr, err := r.database.Register(_email, _pass); err != nil {
-		log.Errorln(err)
+		usr = &entities.User{
+			ResponseCode: entities.RespRegisterError,
+			ResponseMsg:  err.Error(),
+		}
+		if err := r.sendUserResponse(_cid, usr); err != nil {
+			log.Errorln(err)
+		}
 	} else {
 		log.Debugf("%v", usr)
 		usr.ClientId = _cid
 		usr.ResponseCode = entities.RespOK
-		usr.ResponseMsg = ""
+		usr.ResponseMsg = "register"
 
 		r.clientToUser[_cid] = usr.ID.Hex()
 		r.onlineUsers[usr.ID.Hex()] = usr
-		b, err := json.Marshal(usr)
-		if err != nil {
+
+		if err := r.sendUserResponse(_cid, usr); err != nil {
 			log.Errorln(err)
-		} else {
-			go func() {
-				r.coordinator.SendMessageToClient(_cid, b)
-			}()
 		}
 	}
+}
+
+func (r *Registrar) sendUserResponse(_cid string, _usr *entities.User) error {
+	b, err := json.Marshal(_usr)
+	if err != nil {
+		return err
+	} else {
+		go func() {
+			r.coordinator.SendMessageToClient(_cid, b)
+		}()
+	}
+	return nil
 }
 
 func (r *Registrar) isValudUser(cid string, token string) (bool, error) {
@@ -146,7 +165,6 @@ func (r *Registrar) disconnectUser(uid string) {
 }
 
 func (r *Registrar) disconnectClient(_cid string) {
-	go r.coordinator.DisconnectClient(_cid)
 	userId, ok := r.clientToUser[_cid]
 	if ok {
 		// client is actually a user

@@ -48,8 +48,10 @@ func (d *DBWrapper) Logout(_hexid string) error {
 
 func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
 	// 6) Create the update
+	newToken := uuid.NewString()
+	now := time.Now()
 	update := bson.M{
-		"$set": bson.M{"lastSeen": time.Now(), "token": uuid.NewString(), "online": true},
+		"$set": bson.M{"lastSeen": now, "token": newToken, "online": true},
 	}
 
 	result, err := d.db.GetDocumentWithUpdate(entities.GameDB, entities.UsersCollection, bson.M{"email": email, "password": GetMD5Hash(pass)}, update)
@@ -62,6 +64,8 @@ func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
 	if err := result.Decode(retrievedDoc); err != nil {
 		return nil, err
 	}
+	retrievedDoc.Token = newToken
+	retrievedDoc.LastSeen = now
 
 	return retrievedDoc, nil
 }
