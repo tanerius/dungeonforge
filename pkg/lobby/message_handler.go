@@ -37,44 +37,46 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 
 			val, ok := jsonMap["act"]
 			if !ok {
-				log.Errorf("malformed %s", msgEvent.ClientId())
+				h.registrar.malformedResponse(msgEvent.ClientId())
 				return
 			} else {
 				switch val {
 				case "register":
+
 					valEmail, okEmail := jsonMap["email"]
 					valPass, okPass := jsonMap["pass"]
+					valName, okName := jsonMap["name"]
 
-					if !(okEmail && okPass) {
-						log.Errorf("malformed register %s", msgEvent.ClientId())
+					if !(okEmail && okPass && okName) {
+						h.registrar.malformedResponse(msgEvent.ClientId())
 						return
 					}
 
-					h.registrar.register(msgEvent.ClientId(), valEmail, valPass)
+					h.registrar.register(msgEvent.ClientId(), valEmail, valPass, valName)
 
 				case "login":
 					// player wants to login
-					valEmail, okEmail := jsonMap["email"]
+					valName, okName := jsonMap["name"]
 					valPass, okPass := jsonMap["pass"]
 
-					if !(okEmail && okPass) {
-						log.Errorf("malformed register %s", msgEvent.ClientId())
+					if !(okName && okPass) {
+						h.registrar.malformedResponse(msgEvent.ClientId())
 						return
 					}
 
-					h.registrar.login(msgEvent.ClientId(), valEmail, valPass)
+					h.registrar.login(msgEvent.ClientId(), valName, valPass)
 
 				case "logout":
 
 					if !hasToken {
-						log.Errorf("malformed logout %s", msgEvent.ClientId())
+						h.registrar.notAuthenticatedResponse(msgEvent.ClientId())
 						return
 					}
 
 					h.registrar.logout(msgEvent.ClientId(), token)
 				default:
 					if !hasToken {
-						log.Errorf("malformed logout %s", msgEvent.ClientId())
+						h.registrar.notAuthenticatedResponse(msgEvent.ClientId())
 						return
 					}
 
@@ -89,6 +91,8 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 
 						event := eventgoround.NewEvent(game.GameMsg, gameMessage)
 						go h.registrar.eventManager.DispatchPriorityEvent(event)
+					} else {
+						h.registrar.notAuthenticatedResponse(msgEvent.ClientId())
 					}
 				}
 			}

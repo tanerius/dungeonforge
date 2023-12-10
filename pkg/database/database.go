@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/dungeonforge/pkg/entities"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -46,7 +45,7 @@ func (d *DBWrapper) Logout(_hexid string) error {
 	return nil
 }
 
-func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
+func (d *DBWrapper) Login(name, pass string) (*entities.User, error) {
 	// 6) Create the update
 	newToken := uuid.NewString()
 	now := time.Now()
@@ -54,7 +53,7 @@ func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
 		"$set": bson.M{"lastSeen": now, "token": newToken, "online": true},
 	}
 
-	result, err := d.db.GetDocumentWithUpdate(entities.GameDB, entities.UsersCollection, bson.M{"email": email, "password": GetMD5Hash(pass)}, update)
+	result, err := d.db.GetDocumentWithUpdate(entities.GameDB, entities.UsersCollection, bson.M{"name": name, "password": GetMD5Hash(pass)}, update)
 	if err != nil {
 		return nil, err
 	}
@@ -70,10 +69,16 @@ func (d *DBWrapper) Login(email, pass string) (*entities.User, error) {
 	return retrievedDoc, nil
 }
 
-func (d *DBWrapper) Register(email, pass string) (*entities.User, error) {
-	log.Debugln("(d *DBWrapper) Register")
+func (d *DBWrapper) Register(email, pass, name string) (*entities.User, error) {
 	hashedPass := GetMD5Hash(pass)
-	filter := bson.M{"email": email, "password": hashedPass}
+
+	filter := bson.M{
+		"$or": bson.A{
+			bson.M{"email": email},
+			bson.M{"name": name},
+		},
+	}
+
 	count := d.db.Exists(entities.GameDB, entities.UsersCollection, filter)
 	if count > 0 {
 		return nil, errors.New("user already exists")
@@ -81,6 +86,7 @@ func (d *DBWrapper) Register(email, pass string) (*entities.User, error) {
 
 	newUser := &entities.User{
 		Email:    email,
+		Name:     name,
 		Password: hashedPass,
 		Token:    uuid.NewString(),
 		Created:  time.Now(),

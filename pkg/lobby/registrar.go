@@ -3,6 +3,7 @@ package usermanagement
 import (
 	"encoding/json"
 	"errors"
+	"net/mail"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/tanerius/EventGoRound/eventgoround"
@@ -35,6 +36,7 @@ func NewRegistrar(_em *eventgoround.EventManager, _db *database.DBWrapper, _c *s
 	}
 }
 
+// Registrar loop
 func (r *Registrar) Run() {
 	defer func() {
 		// disconnect all users from database
@@ -49,8 +51,21 @@ func (r *Registrar) Run() {
 	select {}
 }
 
-func (r *Registrar) login(_cid, _email, _pass string) {
-	if usr, err := r.database.Login(_email, _pass); err != nil {
+// Handle user login request
+func (r *Registrar) login(_cid, _name, _pass string) {
+	if (len(_name) < 4) || (len(_name) > 15) {
+		iname := &entities.User{
+			ResponseCode: entities.RespInvalidUser,
+			ResponseMsg:  "invalid username",
+		}
+
+		if err := r.sendUserResponse(_cid, iname); err != nil {
+			log.Errorln(err)
+		}
+		return
+	}
+
+	if usr, err := r.database.Login(_name, _pass); err != nil {
 		usr = &entities.User{
 			ResponseCode: entities.RespLoginError,
 			ResponseMsg:  err.Error(),
@@ -81,9 +96,10 @@ func (r *Registrar) login(_cid, _email, _pass string) {
 	}
 }
 
+// Handle user logout request
 func (r *Registrar) logout(_cid, token string) {
-	if ok, err := r.isValudUser(_cid, token); !ok {
-		log.Error(err)
+	if ok, _ := r.isValudUser(_cid, token); !ok {
+		r.notAuthenticatedResponse(_cid)
 		return
 	}
 
@@ -99,8 +115,35 @@ func (r *Registrar) logout(_cid, token string) {
 	r.disconnectClient(_cid)
 }
 
-func (r *Registrar) register(_cid, _email, _pass string) {
-	if usr, err := r.database.Register(_email, _pass); err != nil {
+// Handle register new user request
+func (r *Registrar) register(_cid, _email, _pass, _name string) {
+	// check email
+	if !r.isValidEmail(_email) {
+		ie := &entities.User{
+			ResponseCode: entities.RespInvalidEmail,
+			ResponseMsg:  "invalid email",
+		}
+
+		if err := r.sendUserResponse(_cid, ie); err != nil {
+			log.Errorln(err)
+		}
+		return
+	}
+
+	// check username
+	if (len(_name) < 4) || (len(_name) > 15) {
+		iname := &entities.User{
+			ResponseCode: entities.RespInvalidUser,
+			ResponseMsg:  "invalid username",
+		}
+
+		if err := r.sendUserResponse(_cid, iname); err != nil {
+			log.Errorln(err)
+		}
+		return
+	}
+
+	if usr, err := r.database.Register(_email, _pass, _name); err != nil {
 		usr = &entities.User{
 			ResponseCode: entities.RespRegisterError,
 			ResponseMsg:  err.Error(),
@@ -123,6 +166,28 @@ func (r *Registrar) register(_cid, _email, _pass string) {
 	}
 }
 
+// RESPONSES
+
+// User isnt authenticated response. Bad token or invalid credentials
+func (r *Registrar) notAuthenticatedResponse(_cid string) {
+	r.customResponse(_cid, "not authenticated", entities.RespNotAuthenticated)
+}
+
+func (r *Registrar) malformedResponse(_cid string) {
+	r.customResponse(_cid, "invalid request", entities.RespInvalidRequest)
+}
+
+func (r *Registrar) customResponse(_cid, _msg string, _code int) {
+	usr := &entities.User{
+		ResponseCode: _code,
+		ResponseMsg:  _msg,
+	}
+
+	if err := r.sendUserResponse(_cid, usr); err != nil {
+		log.Errorln(err)
+	}
+}
+
 func (r *Registrar) sendUserResponse(_cid string, _usr *entities.User) error {
 	b, err := json.Marshal(_usr)
 	if err != nil {
@@ -133,6 +198,11 @@ func (r *Registrar) sendUserResponse(_cid string, _usr *entities.User) error {
 		}()
 	}
 	return nil
+}
+
+func (r *Registrar) isValidEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }
 
 func (r *Registrar) isValudUser(cid string, token string) (bool, error) {
