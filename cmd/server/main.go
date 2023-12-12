@@ -16,8 +16,6 @@ func main() {
 	var eventManager *eventgoround.EventManager = eventgoround.NewEventManager()
 	var lobbyDb *database.DBWrapper = database.NewDatabase()
 
-	var gameDb *database.GameDBWrapper = database.NewGameDatabase()
-
 	var coordinator *server.Coordinator = server.NewCoordinator(eventManager)
 	coordinator.RegisterHandlers()
 	go coordinator.Run()
@@ -28,7 +26,7 @@ func main() {
 	var registrar *lobby.Registrar = lobby.NewRegistrar(eventManager, lobbyDb, coordinator)
 	go registrar.Run()
 
-	var gameServer *game.GameServer = game.NewGameServer(gameDb, coordinator, eventManager)
+	var gameServer *game.GameServer = game.NewGameServer(coordinator, eventManager)
 	go gameServer.Run()
 
 	time.Sleep(1 * time.Second)

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/tanerius/EventGoRound/eventgoround"
-	"github.com/tanerius/dungeonforge/pkg/database"
 	"github.com/tanerius/dungeonforge/pkg/server"
 
 	log "github.com/sirupsen/logrus"
@@ -13,16 +12,16 @@ import (
 type GameServer struct {
 	messageChannel chan *GameMessageEvent
 	hub            *server.Coordinator
-	db             *database.GameDBWrapper
+	db             *GameDBWrapper
 	em             *eventgoround.EventManager
 	players        map[string]chan *GameMessageEvent
 }
 
-func NewGameServer(_db *database.GameDBWrapper, _h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
+func NewGameServer(_h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
 	return &GameServer{
 		messageChannel: make(chan *GameMessageEvent, 500),
 		hub:            _h,
-		db:             _db,
+		db:             NewGameDatabase(),
 		em:             _em,
 		players:        make(map[string]chan *GameMessageEvent, 100),
 	}
@@ -65,7 +64,7 @@ func (g *GameServer) Run() {
 				log.Debugf("\n%v\n", message)
 				g.players[message.User.ID.Hex()] = make(chan *GameMessageEvent, 5)
 				playerChan = g.players[message.User.ID.Hex()]
-				newPlayer := LoadPlayer(message.User, g.db, g.hub)
+				newPlayer := SpawnInstance(message.User, g.db, g.hub)
 				go newPlayer.Play(playerChan)
 			}
 			playerChan <- message
