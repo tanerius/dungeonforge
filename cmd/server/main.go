@@ -16,7 +16,7 @@ func main() {
 	var eventManager *eventgoround.EventManager = eventgoround.NewEventManager()
 	var lobbyDb *database.DBWrapper = database.NewDatabase()
 
-	gameDb := database.NewDatabase()
+	var gameDb *database.GameDBWrapper = database.NewGameDatabase()
 
 	var coordinator *server.Coordinator = server.NewCoordinator(eventManager)
 	coordinator.RegisterHandlers()

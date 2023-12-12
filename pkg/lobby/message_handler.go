@@ -54,6 +54,9 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 
 					h.registrar.register(msgEvent.ClientId(), valEmail, valPass, valName)
 
+					// send user to game loop processing
+					h._SendMessage(msgEvent, nil)
+
 				case "login":
 					// player wants to login
 					valName, okName := jsonMap["name"]
@@ -65,6 +68,9 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 					}
 
 					h.registrar.login(msgEvent.ClientId(), valName, valPass)
+
+					// send user to game loop processing
+					h._SendMessage(msgEvent, nil)
 
 				case "logout":
 
@@ -82,15 +88,7 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 
 					//any other case is a game message providing the player is logged in and provides a token
 					if ok, _ := h.registrar.isValudUser(msgEvent.ClientId(), token); ok {
-						uid := h.registrar.clientToUser[msgEvent.ClientId()]
-						gameMessage := &game.GameMessageEvent{
-							ClientId: msgEvent.ClientId(),
-							User:     h.registrar.onlineUsers[uid],
-							Data:     jsonMap,
-						}
-
-						event := eventgoround.NewEvent(game.GameMsg, gameMessage)
-						go h.registrar.eventManager.DispatchPriorityEvent(event)
+						h._SendMessage(msgEvent, jsonMap)
 					} else {
 						h.registrar.notAuthenticatedResponse(msgEvent.ClientId())
 					}
@@ -101,4 +99,17 @@ func (h *_UserMessageHandler) HandleEvent(_event *eventgoround.Event) {
 	} else {
 		log.Error(err)
 	}
+}
+
+func (h *_UserMessageHandler) _SendMessage(_msgEvent *server.MessageEvent, _data map[string]string) {
+	// send user to game loop processing
+	uid := h.registrar.clientToUser[_msgEvent.ClientId()]
+	gameMessage := &game.GameMessageEvent{
+		ClientId: _msgEvent.ClientId(),
+		User:     h.registrar.onlineUsers[uid],
+		Data:     _data,
+	}
+
+	event := eventgoround.NewEvent(game.GameMsg, gameMessage)
+	go h.registrar.eventManager.DispatchPriorityEvent(event)
 }

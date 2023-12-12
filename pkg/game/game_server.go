@@ -13,17 +13,18 @@ import (
 type GameServer struct {
 	messageChannel chan *GameMessageEvent
 	hub            *server.Coordinator
-	db             *database.DBWrapper
+	db             *database.GameDBWrapper
 	em             *eventgoround.EventManager
 	players        map[string]chan *GameMessageEvent
 }
 
-func NewGameServer(_db *database.DBWrapper, _h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
+func NewGameServer(_db *database.GameDBWrapper, _h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
 	return &GameServer{
 		messageChannel: make(chan *GameMessageEvent, 500),
 		hub:            _h,
 		db:             _db,
 		em:             _em,
+		players:        make(map[string]chan *GameMessageEvent, 100),
 	}
 }
 
@@ -61,6 +62,7 @@ func (g *GameServer) Run() {
 			}
 			playerChan, playerExists := g.players[message.User.ID.Hex()]
 			if !playerExists {
+				log.Debugf("\n%v\n", message)
 				g.players[message.User.ID.Hex()] = make(chan *GameMessageEvent, 5)
 				playerChan = g.players[message.User.ID.Hex()]
 				newPlayer := LoadPlayer(message.User, g.db, g.hub)

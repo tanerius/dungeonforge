@@ -12,11 +12,11 @@ import (
 
 type Player struct {
 	user *entities.User
-	db   *database.DBWrapper
+	db   *database.GameDBWrapper
 	hub  *server.Coordinator
 }
 
-func LoadPlayer(_u *entities.User, _db *database.DBWrapper, _hub *server.Coordinator) *Player {
+func LoadPlayer(_u *entities.User, _db *database.GameDBWrapper, _hub *server.Coordinator) *Player {
 	return &Player{
 		user: _u,
 		db:   _db,
@@ -39,6 +39,7 @@ func (p *Player) Play(msgChan <-chan *GameMessageEvent) {
 			if !ok {
 				return
 			}
+			log.Debugf("Player: %s provessing a message", p.user.Name)
 			log.Debugf("%v", msg)
 		case <-ticker.C:
 			// every 100 ms do samping
