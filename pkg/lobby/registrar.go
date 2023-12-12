@@ -42,6 +42,8 @@ func (r *Registrar) Run() {
 		// disconnect all users from database
 	}()
 
+	log.Debugln("[Registrar] Running...")
+
 	dcHandler := NewUserDisconnectHandler(r)
 	r.eventManager.RegisterListener(dcHandler)
 

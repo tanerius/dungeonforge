@@ -48,6 +48,8 @@ func (g *GameServer) HandleEvent(_event *eventgoround.Event) {
 }
 
 func (g *GameServer) Run() {
+	g.em.RegisterListener(g)
+	log.Debugln("[GameServer] Running...")
 	ticker := time.NewTicker(50 * time.Millisecond)
 
 	for {

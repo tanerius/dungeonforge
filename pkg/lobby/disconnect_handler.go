@@ -1,4 +1,4 @@
-package usermanagement
+package lobby
 
 import (
 	log "github.com/sirupsen/logrus"
