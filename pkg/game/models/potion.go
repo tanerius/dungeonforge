@@ -15,3 +15,11 @@ type Potion struct {
 	// 0 means once active it remains active
 	Duration uint `bson:"duration" json:"duration"`
 }
+
+func (p *Potion) GetId() string {
+	return p.Id.Hex()
+}
+
+func (p *Potion) GetHumanId() string {
+	return p.HrId
+}

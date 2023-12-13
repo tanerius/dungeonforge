@@ -10,5 +10,6 @@ type Player struct {
 	Gems           int                `bson:"gems,omitempty" json:"gems,omitempty"`
 	TotalPurchases int                `bson:"totalpurchases,omitempty" json:"totalpurchases,omitempty"`
 	IsNewPlayer    bool               `bson:"isnew,omitempty" json:"isnew,omitempty"`
-	Characters     []CharacterS
+	Characters     []Character
+	IsDirty        bool
 }

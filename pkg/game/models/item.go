@@ -35,3 +35,44 @@ type Item struct {
 	// Damage modifier of the item
 	*Damage `bson:"damage" json:"damage"`
 }
+
+func (i *Item) Clone() *Item {
+	if i.StatsWielder == nil {
+		i.StatsWielder = NewStats(0, 0, 0, 0, 0)
+	}
+
+	if i.StatsEnemy == nil {
+		i.StatsEnemy = NewStats(0, 0, 0, 0, 0)
+	}
+
+	if i.Damage == nil {
+		i.Damage = &Damage{}
+	}
+
+	return &Item{
+		Entity:        i.Entity,
+		MarketInfo:    i.MarketInfo,
+		Droppable:     i.Droppable,
+		Buffable:      i.Buffable,
+		Slot:          i.Slot,
+		Rarity:        i.Rarity,
+		MinLevel:      i.MinLevel,
+		StopDropLevel: i.StopDropLevel,
+		StatsWielder:  NewStats(i.StatsWielder.Str, i.StatsWielder.Dex, i.StatsWielder.Con, i.StatsWielder.Int, i.StatsWielder.Arm),
+		StatsEnemy:    NewStats(i.StatsEnemy.Str, i.StatsEnemy.Dex, i.StatsEnemy.Con, i.StatsEnemy.Int, i.StatsEnemy.Arm),
+		Damage: &Damage{
+			MinDmg:     i.Damage.MinDmg,
+			MaxDmg:     i.Damage.MaxDmg,
+			CritVal:    i.Damage.CritVal,
+			CritChance: i.Damage.CritChance,
+		},
+	}
+}
+
+func (i *Item) GetId() string {
+	return i.Id.Hex()
+}
+
+func (i *Item) GetHumanId() string {
+	return i.HrId
+}

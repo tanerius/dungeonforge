@@ -1,10 +1,33 @@
 package models
 
-import "go.mongodb.org/mongo-driver/bson/primitive"
+import (
+	"time"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+// an interface used for any item
 type Identifiable interface {
 	GetId() string
 	GetHumanId() string
+}
+
+// an interface for retailableitems
+type Sellable interface {
+	Sell(*Character) (int, error)
+}
+
+// an interface used for potions
+type Consumable interface {
+	Consume(*Character) (time.Duration, error)
+	TimeRemaining() time.Duration
+	IsConsumed() bool
+}
+
+// an interface used for potions
+type Equipable interface {
+	Equip(*Character) (string, error)
+	UnEquip(*Character) error
 }
 
 type Entity struct {
