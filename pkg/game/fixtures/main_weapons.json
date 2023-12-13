@@ -1,0 +1,23 @@
+[
+    {
+        "hrid": "sturdy_stick",
+        "name": "Sturdy Stick",
+        "desc": "A clumsy opportunistic weapon",
+        "marketable": true,
+        "tradable": false,
+        "buycostgold": 2,
+        "buycostgems": 0,
+        "sellcostgold": 1,
+        "sellcostgems": 0,
+        "droppable": false,
+        "buffable": true,
+        "slot": 2,
+        "rarity": 0,
+        "minlevel": 0,
+        "stopdrop": 0,
+        "damage": {
+            "mindmg": 1,
+            "maxdmg": 2
+        }
+    }
+]

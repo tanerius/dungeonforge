@@ -1,9 +1,12 @@
 package game
 
 import (
+	"encoding/json"
+	"os"
 	"time"
 
 	"github.com/tanerius/EventGoRound/eventgoround"
+	"github.com/tanerius/dungeonforge/pkg/game/models"
 	"github.com/tanerius/dungeonforge/pkg/server"
 
 	log "github.com/sirupsen/logrus"
@@ -15,6 +18,8 @@ type GameServer struct {
 	db             *GameDBWrapper
 	em             *eventgoround.EventManager
 	players        map[string]chan *GameMessageEvent
+	items          []*models.Item
+	potions        []*models.Potion
 }
 
 func NewGameServer(_h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
@@ -48,6 +53,10 @@ func (g *GameServer) HandleEvent(_event *eventgoround.Event) {
 }
 
 func (g *GameServer) Run() {
+	g.items = make([]*models.Item, 0)
+	g.potions = make([]*models.Potion, 0)
+
+	g.readItems()
 	g.em.RegisterListener(g)
 	log.Debugln("[GameServer] Running...")
 	ticker := time.NewTicker(50 * time.Millisecond)
@@ -73,4 +82,39 @@ func (g *GameServer) Run() {
 		}
 
 	}
+}
+
+// this function reads items one by one
+func (g *GameServer) readItems() {
+
+	// weapons
+	weapons, err := os.Open("pkg/game/fixtures/main_weapons.json")
+	if err != nil {
+		log.Panic("opening json file", err.Error())
+	}
+
+	jsonParser := json.NewDecoder(weapons)
+	if err = jsonParser.Decode(&g.items); err != nil {
+		log.Panic("parsing config file", err.Error())
+	}
+
+	weapons.Close()
+
+	// potions
+	potions, err := os.Open("pkg/game/fixtures/potions.json")
+	if err != nil {
+		log.Panic("opening json file", err.Error())
+	}
+
+	jsonParser = json.NewDecoder(potions)
+
+	p := make([]*models.Potion, 0)
+
+	if err = jsonParser.Decode(&p); err != nil {
+		log.Panic("parsing config file", err.Error())
+	}
+
+	g.potions = append(g.potions, p...)
+	potions.Close()
+
 }

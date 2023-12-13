@@ -1,6 +1,19 @@
 package gameobjects
 
-// Constants defining slots and item types
+// Game config constants
+const (
+	// DB connection URI
+	// TODO: make this part of env of course
+	GameDbURI string = "mongodb://dungeonmaster:m123123123@localhost:27017/"
+	// Max connection pool
+	ConnPoolMaxSize uint64 = 100
+	// database name
+	GameDB string = "tanothDB"
+	// Player collection
+	ColPlayer string = "players"
+)
+
+// Constants defining slot values
 const (
 	// Item worn for head gear
 	SlotHead int = 0
@@ -38,9 +51,21 @@ const (
 
 // constants for rarity
 const (
-	RarityCommon   = 0 // Gray
-	RarityRare     = 1 // Green
-	RarityEpic     = 3 // Blue
-	RarityImmortal = 4 // YEllow
-	RarityMaxVal   = 5
+	RarityCommon   int = 0 // Gray
+	RarityRare     int = 1 // Green
+	RarityEpic     int = 3 // Blue
+	RarityImmortal int = 4 // YEllow - ONLY ONE of this
+	RarityMaxVal   int = 5
+)
+
+// modifier target
+const (
+	TargetSelf     int = 0
+	TargetOpponent int = 1
+	TargetAoe      int = 2
+)
+
+// modifier proc types
+const (
+	Permanent int = 0
 )

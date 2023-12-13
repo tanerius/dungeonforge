@@ -1,0 +1,18 @@
+[
+    {
+        "hrid": "clarity_potion",
+        "name": "Clarity Potion",
+        "desc": "Increases intelligence by 10% for 24 hours ",
+        "marketable": true,
+        "tradable": true,
+        "buycostgold": 100,
+        "buycostgems": 0,
+        "sellcostgold": 50,
+        "sellcostgems": 0,
+        "droppable": true,
+        "statswielder": {
+            "Int": 0.1
+        },
+        "duration": 72000
+    }
+]
