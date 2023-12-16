@@ -11,6 +11,12 @@ const (
 	GameDB string = "tanothDB"
 	// Player collection
 	ColPlayer string = "players"
+	// Character collection
+	ColCharacter string = "characters"
+
+	// Initial gems
+	StartingGems int = 10
+	StartingGold int = 150
 )
 
 // Constants defining slot values

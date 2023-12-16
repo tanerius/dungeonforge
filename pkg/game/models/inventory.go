@@ -17,26 +17,24 @@ type Item interface {
 // Consumable interface for consumable items
 type Consumable interface {
 	Item
-	Consume()
+	Consume(*Character)
 }
 
 // Equippable interface for equippable items
 type Equippable interface {
 	Item
-	Equip()
-	AddRune(rune *RuneItem)
-}
+	Equip(*Character)
+	Unequip(*Character)
+	AddRune(*RuneItem)
 
-// RuneAttachable interface for items that runes can be attached to
-type RuneAttachable interface {
-	AddRune(rune *RuneItem)
+	AttachedRunes() []*RuneItem
 }
 
 // Attachable interface for items that can attach to other items
 type Attachable interface {
 	Item
 	// method to indicate ehwn a rune was attached
-	Attach()
+	Attach(*Character, Equippable)
 
 	// Calculates to see if the current rune is active
 	IsAttached() bool
