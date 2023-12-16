@@ -26,7 +26,7 @@ func (i *ConsumableItem) Modifiers() *Modifier {
 	return i.ItemStats
 }
 
-// Implement Modifiers required in the item interface
+// Implement Modifiers required in the consumable interface
 func (i *ConsumableItem) Consume() {
 	// TODO: implement
 }

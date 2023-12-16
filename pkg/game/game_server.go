@@ -18,8 +18,8 @@ type GameServer struct {
 	db             *GameDBWrapper
 	em             *eventgoround.EventManager
 	players        map[string]chan *GameMessageEvent
-	items          []*models.Item
-	potions        []*models.Potion
+	items          []models.Equippable
+	potions        []models.Consumable
 }
 
 func NewGameServer(_h *server.Coordinator, _em *eventgoround.EventManager) *GameServer {
@@ -53,8 +53,8 @@ func (g *GameServer) HandleEvent(_event *eventgoround.Event) {
 }
 
 func (g *GameServer) Run() {
-	g.items = make([]*models.Item, 0)
-	g.potions = make([]*models.Potion, 0)
+	g.items = make([]models.Equippable, 0)
+	g.potions = make([]models.Consumable, 0)
 
 	g.readItems()
 	g.em.RegisterListener(g)
@@ -108,7 +108,7 @@ func (g *GameServer) readItems() {
 
 	jsonParser = json.NewDecoder(potions)
 
-	p := make([]*models.Potion, 0)
+	p := make([]models.Consumable, 0)
 
 	if err = jsonParser.Decode(&p); err != nil {
 		log.Panic("parsing config file", err.Error())

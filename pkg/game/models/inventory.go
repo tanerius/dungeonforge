@@ -23,3 +23,16 @@ type Equippable interface {
 type RuneAttachable interface {
 	AddRune(rune *RuneItem)
 }
+
+// Attachable interface for items that can attach to other items
+type Attachable interface {
+	Item
+	// method to indicate ehwn a rune was attached
+	Attach()
+
+	// Calculates to see if the current rune is active
+	IsAttached() bool
+
+	// Calculates to see if the current rune is depleted and item can be deleted
+	IsDepleted() bool
+}

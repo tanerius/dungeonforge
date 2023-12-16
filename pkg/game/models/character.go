@@ -8,4 +8,5 @@ type Character struct {
 	Gold      int    `bson:"gold" json:"gold"`
 	GuildId   string `bson:"guildid" json:"guildid"`
 	Exp       int    `bson:"exp" json:"exp"`
+	Inventory map[string]Item
 }

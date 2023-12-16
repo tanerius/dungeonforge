@@ -24,6 +24,8 @@ type EquippableItem struct {
 
 	// How the item changes the wielder's stats
 	ItemStats *Modifier `bson:"itemstats" json:"itemstats"`
+
+	Runes []*RuneItem `bson:"runes" json:"runes"`
 }
 
 // Implement Id required in the item interface
