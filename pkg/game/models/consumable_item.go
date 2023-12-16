@@ -16,6 +16,11 @@ type ConsumableItem struct {
 	Duration uint `bson:"duration" json:"duration"`
 }
 
+// Implement Type required in the item interface
+func (i *ConsumableItem) Type() int {
+	return ItemTypeConsumable
+}
+
 // Implement Id required in the item interface
 func (i *ConsumableItem) Id() string {
 	return i.HrId

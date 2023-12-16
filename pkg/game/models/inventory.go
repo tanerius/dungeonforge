@@ -1,8 +1,16 @@
 package models
 
+const (
+	ItemTypeUnknown    int = 0
+	ItemTypeEquippable int = 1
+	ItemTypeConsumable int = 2
+	ItemTypeRune       int = 3
+)
+
 // Item interface for all items
 type Item interface {
 	Id() string
+	Type() int
 	Modifiers() *Modifier
 }
 

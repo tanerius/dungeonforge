@@ -25,6 +25,11 @@ type RuneItem struct {
 	UsedOn time.Time `bson:"usedon" json:"usedon"`
 }
 
+// Implement Type required in the item interface
+func (i *RuneItem) Type() int {
+	return ItemTypeRune
+}
+
 // Implement Id required in the item interface
 func (i *RuneItem) Id() string {
 	return i.HrId

@@ -28,6 +28,11 @@ type EquippableItem struct {
 	Runes []*RuneItem `bson:"runes" json:"runes"`
 }
 
+// Implement Type required in the item interface
+func (i *EquippableItem) Type() int {
+	return ItemTypeEquippable
+}
+
 // Implement Id required in the item interface
 func (i *EquippableItem) Id() string {
 	return i.HrId
