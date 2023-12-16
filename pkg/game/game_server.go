@@ -13,6 +13,7 @@ import (
 )
 
 type GameServer struct {
+	playerLoopStop chan string
 	messageChannel chan *GameMessageEvent
 	hub            *server.Coordinator
 	db             *GameDBWrapper
@@ -63,6 +64,17 @@ func (g *GameServer) Run() {
 
 	for {
 		select {
+		case pid, ok := <-g.playerLoopStop:
+			if !ok {
+				log.Debugln("Loop stop channel closed")
+				return
+			}
+
+			if playerChan, playerExists := g.players[pid]; playerExists {
+				close(playerChan)
+				delete(g.players, pid)
+			}
+
 		case message, ok := <-g.messageChannel:
 			if !ok {
 				log.Debugln("Main game message channel closed")
@@ -73,7 +85,7 @@ func (g *GameServer) Run() {
 				log.Debugf("\n%v\n", message)
 				g.players[message.User.ID.Hex()] = make(chan *GameMessageEvent, 5)
 				playerChan = g.players[message.User.ID.Hex()]
-				newPlayer := SpawnInstance(message.User, g.db, g.hub)
+				newPlayer := SpawnInstance(g, message.User, g.db, g.hub)
 				go newPlayer.Play(playerChan)
 			}
 			playerChan <- message
