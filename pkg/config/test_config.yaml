@@ -1,0 +1,7 @@
+foo: bar
+pleh: help
+somenumber: 3
+somebool: true
+stuff:
+  foo: bar
+  bar: foo
