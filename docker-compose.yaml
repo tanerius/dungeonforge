@@ -2,14 +2,19 @@ version: "3.8"
 
 services:
   mongo:
-    image: mongo
-    restart: always
+    image: mongo:latest
+    restart: on-failure
     ports:
       - "27017:27017"  # Expose port 27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: dungeonmaster
       MONGO_INITDB_ROOT_PASSWORD: m123123123
-
+      MONGO_INITDB_DATABASE: dungeondb
+      GAME_USER_PASS: gameuserpass
+    volumes:
+      - mongodb-data:/data/db
+      - mongodb-log:/var/log/mongodb
+      - ./init-script:/docker-entrypoint-initdb.d
   mongo-express:
     image: mongo-express
     restart: always
@@ -24,3 +29,8 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: m123123123
       ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_URL: mongodb://dungeonmaster:m123123123@mongo:27017/
+volumes:
+  mongodb-data:
+    driver: local
+  mongodb-log:
+    driver: local
