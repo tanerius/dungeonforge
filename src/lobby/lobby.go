@@ -28,7 +28,13 @@ func (r *LobbyServerNode) LeaveLobby(context.Context, *TokenRequest) (*LeaveResp
 	return nil, nil
 }
 
-func (r *LobbyServerNode) Login(context.Context, *UserLoginRequest) (*LoginResponse, error) {
+func (r *LobbyServerNode) Login(ctx context.Context, request *UserLoginRequest) (*LoginResponse, error) {
+	response := &LoginResponse{
+		Response: &BaseResponse {
+			ResponseCode: 404,
+			ApiVersion:   1
+		},
+	}
 	return nil, nil
 }
 
@@ -38,7 +44,7 @@ func (r *LobbyServerNode) Matchmaking(context.Context, *TokenRequest) (*Matchmak
 
 func (r *LobbyServerNode) Roll(ctx context.Context, request *RollRequest) (*RollResponse, error) {
 	br := &BaseResponse{
-		ResponseCode: 0,
+		ResponseCode: 200,
 		ApiVersion:   1,
 	}
 

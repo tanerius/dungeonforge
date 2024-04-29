@@ -7,14 +7,14 @@ option go_package = "github.com/tanerius/dungeonforge/src/lobby";
 
 // Define the gRPC service with necessary RPC calls
 service Lobby {
-  rpc Login(UserLoginRequest) returns (LoginResponse);
-  rpc RefreshToken(TokenRequest) returns (LoginResponse);
-  rpc JoinLobby(TokenRequest) returns (JoinResponse);
-  rpc LeaveLobby(TokenRequest) returns (LeaveResponse);
-  rpc SendMessage(ChatMessage) returns (MessageResponse);
-  rpc GetUsers(TokenRequest) returns (UserListResponse);
-  rpc Matchmaking(TokenRequest) returns (MatchmakingResponse);
-  rpc Roll(RollRequest) returns (RollResponse);
+    rpc Login(UserLoginRequest) returns (LoginResponse);
+    rpc RefreshToken(TokenRequest) returns (LoginResponse);
+    rpc JoinLobby(TokenRequest) returns (JoinResponse);
+    rpc LeaveLobby(TokenRequest) returns (LeaveResponse);
+    rpc SendMessage(ChatMessage) returns (MessageResponse);
+    rpc GetUsers(TokenRequest) returns (UserListResponse);
+    rpc Matchmaking(TokenRequest) returns (MatchmakingResponse);
+    rpc Roll(RollRequest) returns (RollResponse);
 }
 
 message RollRequest {
@@ -28,8 +28,8 @@ message RollResponse {
 }
 
 message UserLoginRequest {
-  string username = 1;
-  string password = 2;
+    string username = 1;
+    string password = 2;
 }
 
 message BaseResponse {
@@ -39,12 +39,12 @@ message BaseResponse {
 }
 
 message TokenRequest {
-  string token = 1;
+    string token = 1;
 }
 
 message ChatMessage {
-  string token = 1;
-  string message = 2;
+    string token = 1;
+    string message = 2;
 }
 
 message LobbyInfo {

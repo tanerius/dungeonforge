@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/tanerius/dungeonforge/pkg/config"
 	"github.com/tanerius/dungeonforge/pkg/database"
 	"github.com/tanerius/dungeonforge/pkg/logging"
@@ -19,6 +20,8 @@ type User struct {
 	Username    string             `bson:"username,omitempty"`
 	Password    string             `bson:"password,omitempty"`
 	Created     time.Time          `bson:"created,omitempty"`
+	Token       string             `bson:"token,omitempty"`
+	Validated   bool               `bson:"validated,omitempty"`
 	LastSeen    time.Time          `bson:"lastseen,omitempty"`
 	IsOnline    bool               `bson:"online,omitempty"`
 	ClientId    string             `bson:"-"`
@@ -39,6 +42,8 @@ func (r *User) Write(ctx context.Context) error {
 			"email":       r.Email, // TODO: think about not allowing this
 			"username":    r.Username,
 			"password":    r.Password, // pass should always be hashed
+			"token":       r.Token,
+			"validated":   r.Validated,
 			"lastSeen":    now,
 			"online":      r.IsOnline,
 		},
@@ -56,6 +61,25 @@ func (r *User) Logout(ctx context.Context) error {
 	r.log.LogInfo("entities.User.Logout()")
 	if err := r.Write(ctx); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (r *User) Validate(ctx context.Context, token string) error {
+	r.log.LogInfo("entities.User.Validate()")
+
+	if r.Validated {
+		return nil
+	}
+
+	if r.Token != token {
+		errors.New("invalid token")
+	}
+
+	r.Validated = true
+	if err := r.Write(ctx); err != nil {
+		errors.New("cannot write user")
 	}
 
 	return nil
@@ -116,15 +140,17 @@ func RegisterUser(ctx context.Context, db *database.MongoDB, email, username, pa
 	}
 
 	newUser := &User{
-		Email:    email,
-		Username: username,
-		Password: hashedPass,
-		Created:  time.Now(),
-		LastSeen: time.Now(),
-		IsOnline: true,
-		conf:     conf,
-		db:       db,
-		log:      logger,
+		Email:     email,
+		Username:  username,
+		Password:  hashedPass,
+		Created:   time.Now(),
+		LastSeen:  time.Now(),
+		Token:     uuid.NewString(),
+		Validated: false,
+		IsOnline:  true,
+		conf:      conf,
+		db:        db,
+		log:       logger,
 	}
 
 	inserted, err := db.CreateDocument(ctx, "dungeondb", "users", newUser)
