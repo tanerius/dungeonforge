@@ -8,7 +8,7 @@ type LobbyServerNode struct {
 	UnimplementedLobbyServer
 }
 
-func (r *LobbyServerNode) GetUsers(context.Context, *TokenRequest) (*UserListResponse, error) {
+func (r *LobbyServerNode) GetUsers(ctx context.Context, token *TokenRequest) (*UserListResponse, error) {
 	br := &BaseResponse{
 		ResponseCode: 0,
 		ApiVersion:   1,

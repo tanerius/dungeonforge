@@ -1,9 +1,0 @@
-go get github.com/google/uuid
-go get go.mongodb.org/mongo-driver/mongo
-go get github.com/gorilla/websocket
-go get github.com/sirupsen/logrus
-go get github.com/golang/protobuf/proto
-
-protoc --go_out=paths=source_relative:. testmsg.proto
-
-go get github.com/kutase/go-gameloop
