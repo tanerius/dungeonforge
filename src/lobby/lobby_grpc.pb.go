@@ -26,6 +26,7 @@ const (
 	Lobby_SendMessage_FullMethodName  = "/Lobby/SendMessage"
 	Lobby_GetUsers_FullMethodName     = "/Lobby/GetUsers"
 	Lobby_Matchmaking_FullMethodName  = "/Lobby/Matchmaking"
+	Lobby_Roll_FullMethodName         = "/Lobby/Roll"
 )
 
 // LobbyClient is the client API for Lobby service.
@@ -39,6 +40,7 @@ type LobbyClient interface {
 	SendMessage(ctx context.Context, in *ChatMessage, opts ...grpc.CallOption) (*MessageResponse, error)
 	GetUsers(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*UserListResponse, error)
 	Matchmaking(ctx context.Context, in *TokenRequest, opts ...grpc.CallOption) (*MatchmakingResponse, error)
+	Roll(ctx context.Context, in *RollRequest, opts ...grpc.CallOption) (*RollResponse, error)
 }
 
 type lobbyClient struct {
@@ -112,6 +114,15 @@ func (c *lobbyClient) Matchmaking(ctx context.Context, in *TokenRequest, opts ..
 	return out, nil
 }
 
+func (c *lobbyClient) Roll(ctx context.Context, in *RollRequest, opts ...grpc.CallOption) (*RollResponse, error) {
+	out := new(RollResponse)
+	err := c.cc.Invoke(ctx, Lobby_Roll_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // LobbyServer is the server API for Lobby service.
 // All implementations must embed UnimplementedLobbyServer
 // for forward compatibility
@@ -123,6 +134,7 @@ type LobbyServer interface {
 	SendMessage(context.Context, *ChatMessage) (*MessageResponse, error)
 	GetUsers(context.Context, *TokenRequest) (*UserListResponse, error)
 	Matchmaking(context.Context, *TokenRequest) (*MatchmakingResponse, error)
+	Roll(context.Context, *RollRequest) (*RollResponse, error)
 	mustEmbedUnimplementedLobbyServer()
 }
 
@@ -150,6 +162,9 @@ func (UnimplementedLobbyServer) GetUsers(context.Context, *TokenRequest) (*UserL
 }
 func (UnimplementedLobbyServer) Matchmaking(context.Context, *TokenRequest) (*MatchmakingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Matchmaking not implemented")
+}
+func (UnimplementedLobbyServer) Roll(context.Context, *RollRequest) (*RollResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Roll not implemented")
 }
 func (UnimplementedLobbyServer) mustEmbedUnimplementedLobbyServer() {}
 
@@ -290,6 +305,24 @@ func _Lobby_Matchmaking_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Lobby_Roll_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RollRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(LobbyServer).Roll(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Lobby_Roll_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(LobbyServer).Roll(ctx, req.(*RollRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Lobby_ServiceDesc is the grpc.ServiceDesc for Lobby service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -324,6 +357,10 @@ var Lobby_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Matchmaking",
 			Handler:    _Lobby_Matchmaking_Handler,
+		},
+		{
+			MethodName: "Roll",
+			Handler:    _Lobby_Roll_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

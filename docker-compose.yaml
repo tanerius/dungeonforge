@@ -1,11 +1,16 @@
 version: "3.8"
 
 services:
+  lobby:
+    build:
+      context: .
+    ports:
+      - 8080:8080
   mongo:
     image: mongo:latest
     restart: on-failure
     ports:
-      - "27017:27017"  # Expose port 27017
+      - "27017:27017" # Expose port 27017
     environment:
       MONGO_INITDB_ROOT_USERNAME: dungeonmaster
       MONGO_INITDB_ROOT_PASSWORD: m123123123

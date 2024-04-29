@@ -14,6 +14,17 @@ service Lobby {
   rpc SendMessage(ChatMessage) returns (MessageResponse);
   rpc GetUsers(TokenRequest) returns (UserListResponse);
   rpc Matchmaking(TokenRequest) returns (MatchmakingResponse);
+  rpc Roll(RollRequest) returns (RollResponse);
+}
+
+message RollRequest {
+    int64 dice = 1;
+    int64 sides = 2;
+}
+
+message RollResponse {
+    BaseResponse response = 1;
+    repeated int64 value = 2;
 }
 
 message UserLoginRequest {
