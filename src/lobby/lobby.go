@@ -29,13 +29,13 @@ func (r *LobbyServerNode) LeaveLobby(context.Context, *TokenRequest) (*LeaveResp
 }
 
 func (r *LobbyServerNode) Login(ctx context.Context, request *UserLoginRequest) (*LoginResponse, error) {
-	response := &LoginResponse{
-		Response: &BaseResponse {
+	res := &LoginResponse{
+		Response: &BaseResponse{
 			ResponseCode: 404,
-			ApiVersion:   1
+			ApiVersion:   1,
 		},
 	}
-	return nil, nil
+	return res, nil
 }
 
 func (r *LobbyServerNode) Matchmaking(context.Context, *TokenRequest) (*MatchmakingResponse, error) {

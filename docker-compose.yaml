@@ -1,11 +1,24 @@
-version: "3.8"
+name: myapp
 
 services:
+  haxe:
+    build:
+      context: ./haxe
+    working_dir: /app
+    command: > 
+      haxelib run protohx generate protohx.json
+      && haxe ./build.hxml
+    volumes:
+      - ./haxe/app:/app
+    profiles:
+      - donotstart
   lobby:
     build:
       context: .
     ports:
       - 8080:8080
+    profiles:
+      - donotstart
   mongo:
     image: mongo:latest
     restart: on-failure
@@ -20,6 +33,8 @@ services:
       - mongodb-data:/data/db
       - mongodb-log:/var/log/mongodb
       - ./init-script:/docker-entrypoint-initdb.d
+    profiles:
+      - donotstart
   mongo-express:
     image: mongo-express
     restart: always
@@ -34,6 +49,8 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: m123123123
       ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_URL: mongodb://dungeonmaster:m123123123@mongo:27017/
+    profiles:
+      - donotstart
 volumes:
   mongodb-data:
     driver: local
