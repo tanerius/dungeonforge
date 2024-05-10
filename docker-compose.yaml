@@ -17,8 +17,6 @@ services:
       context: .
     ports:
       - 8080:8080
-    profiles:
-      - donotstart
   mongo:
     image: mongo:latest
     restart: on-failure
@@ -33,11 +31,9 @@ services:
       - mongodb-data:/data/db
       - mongodb-log:/var/log/mongodb
       - ./init-script:/docker-entrypoint-initdb.d
-    profiles:
-      - donotstart
   mongo-express:
     image: mongo-express
-    restart: always
+    restart: on-failure
     ports:
       - 8081:8081
     depends_on:
@@ -49,8 +45,6 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: m123123123
       ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_URL: mongodb://dungeonmaster:m123123123@mongo:27017/
-    profiles:
-      - donotstart
 volumes:
   mongodb-data:
     driver: local
