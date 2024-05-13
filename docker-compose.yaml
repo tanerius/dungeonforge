@@ -37,7 +37,7 @@ services:
       - donotstart
   mongo-express:
     image: mongo-express
-    restart: always
+    restart: on-failure
     ports:
       - 8081:8081
     depends_on:
