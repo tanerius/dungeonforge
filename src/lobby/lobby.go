@@ -3,14 +3,16 @@ package lobby
 import (
 	context "context"
 	"math/rand"
+
+	common "github.com/tanerius/dungeonforge/src/common"
 )
 
 type LobbyServerNode struct {
-	UnimplementedLobbyServer
+	UnimplementedLobbyServiceServer
 }
 
-func (r *LobbyServerNode) GetUsers(ctx context.Context, token *TokenRequest) (*UserListResponse, error) {
-	br := &BaseResponse{
+func (r *LobbyServerNode) GetUsers(ctx context.Context, token *common.TokenRequest) (*UserListResponse, error) {
+	br := &common.BaseResponse{
 		ResponseCode: 0,
 		ApiVersion:   1,
 	}
@@ -20,30 +22,16 @@ func (r *LobbyServerNode) GetUsers(ctx context.Context, token *TokenRequest) (*U
 	return &UserListResponse{Response: br, Users: users}, nil
 }
 
-func (r *LobbyServerNode) JoinLobby(context.Context, *TokenRequest) (*JoinResponse, error) {
+func (r *LobbyServerNode) JoinLobby(context.Context, *common.TokenRequest) (*JoinResponse, error) {
 	return nil, nil
 }
 
-func (r *LobbyServerNode) LeaveLobby(context.Context, *TokenRequest) (*LeaveResponse, error) {
-	return nil, nil
-}
-
-func (r *LobbyServerNode) Login(ctx context.Context, request *UserLoginRequest) (*LoginResponse, error) {
-	res := &LoginResponse{
-		Response: &BaseResponse{
-			ResponseCode: 404,
-			ApiVersion:   1,
-		},
-	}
-	return res, nil
-}
-
-func (r *LobbyServerNode) Matchmaking(context.Context, *TokenRequest) (*MatchmakingResponse, error) {
+func (r *LobbyServerNode) LeaveLobby(context.Context, *common.TokenRequest) (*LeaveResponse, error) {
 	return nil, nil
 }
 
 func (r *LobbyServerNode) Roll(ctx context.Context, request *RollRequest) (*RollResponse, error) {
-	br := &BaseResponse{
+	br := &common.BaseResponse{
 		ResponseCode: 200,
 		ApiVersion:   1,
 	}

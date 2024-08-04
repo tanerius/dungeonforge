@@ -20,7 +20,7 @@ func main() {
 	}
 
 	serverRegistrar := grpc.NewServer()
-	lobby.RegisterLobbyServer(serverRegistrar, service)
+	lobby.RegisterLobbyServiceServer(serverRegistrar, service)
 
 	serverError := serverRegistrar.Serve(listener)
 

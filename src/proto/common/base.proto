@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "github.com/tanerius/dungeonforge/src/common;common";
+
+/*
+    Response codes:
+    0 : OK
+    >= 1 : Error
+*/
+message BaseResponse {
+    int64 responseCode = 1;
+    int64 apiVersion = 2;
+    optional string msg = 3;
+}
+
+message TokenRequest {
+    string token = 1;
+}

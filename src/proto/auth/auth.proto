@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+// Import the common.proto file
+import "common/base.proto";
+
+/*
+    the following line tells the protobuff compiler to create a package in the given path
+*/
+option go_package = "github.com/tanerius/dungeonforge/src/auth;auth";
+
+message UserLoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+// Response to a login request including tokens and their validity
+message LoginResponse {
+    BaseResponse response = 1;
+    optional string accessToken = 2;
+    optional int64 accessTokenExpiresIn = 3; // Validity period in seconds
+    optional string refreshToken = 4;
+    optional int64 refreshTokenExpiresIn = 5; // Validity period in seconds
+}
+
+// Define the gRPC service with necessary RPC calls
+// This service does user login and logout
+service AuthService {
+    rpc Login(UserLoginRequest) returns (LoginResponse);
+    rpc RefreshToken(TokenRequest) returns (LoginResponse);
+    rpc Logout(TokenRequest) returns (BaseResponse);
+    rpc GetServiceInfo(TokenRequest) returns (BaseResponse);
+}
