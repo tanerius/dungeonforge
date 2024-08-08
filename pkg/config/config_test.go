@@ -6,7 +6,7 @@ import (
 )
 
 func TestReadConfig(t *testing.T) {
-	l := NewIConfig()
+	l := NewIConfig(false)
 	dir, _ := os.Getwd()
 	if err := l.ReadConfig(dir, "test_config"); err != nil {
 		t.Fatalf(`Failed to ReadConfig(. , test_config). Got : '%s', want : nil`, err.Error())
@@ -14,7 +14,7 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestRead(t *testing.T) {
-	l := NewIConfig()
+	l := NewIConfig(false)
 
 	dir, _ := os.Getwd()
 	if err := l.ReadConfig(dir, "test_config"); err != nil {
@@ -30,7 +30,7 @@ func TestRead(t *testing.T) {
 	}
 }
 func TestWrite(t *testing.T) {
-	l := NewIConfig()
+	l := NewIConfig(false)
 
 	dir, _ := os.Getwd()
 	if err := l.ReadConfig(dir, "test_config"); err != nil {

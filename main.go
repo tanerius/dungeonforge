@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net"
 
 	"github.com/tanerius/dungeonforge/pkg/logging"
@@ -9,8 +10,14 @@ import (
 )
 
 func main() {
-	service := &lobby.LobbyServerNode{}
 	log := logging.NewLogger()
+	log.LogInfo("Starting a lobby")
+	service := lobby.NewMockedLobby(log)
+
+	if service == nil {
+		log.LogError(errors.New("no lobby service"), "can't create lobby service")
+		return
+	}
 
 	listener, err := net.Listen("tcp", ":8080")
 

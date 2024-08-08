@@ -1,17 +1,6 @@
 name: myapp
 
 services:
-  haxe:
-    build:
-      context: ./haxe
-    working_dir: /app
-    command: > 
-      haxelib run protohx generate protohx.json
-      && haxe ./build.hxml
-    volumes:
-      - ./haxe/app:/app
-    profiles:
-      - donotstart
   lobby:
     build:
       context: .

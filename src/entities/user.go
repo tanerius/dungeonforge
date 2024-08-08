@@ -88,7 +88,7 @@ func (r *User) Validate(ctx context.Context, token string) error {
 // This is basically a login feature for the user
 func GetUser(ctx context.Context, db *database.MongoDB, username, password string) (*User, error) {
 	logger := logging.NewLogger()
-	conf := config.NewIConfig()
+	conf := config.NewIConfig(true)
 
 	logger.LogInfo("entities.GetUser()")
 	// Create the update
@@ -96,8 +96,9 @@ func GetUser(ctx context.Context, db *database.MongoDB, username, password strin
 	update := bson.M{
 		"$set": bson.M{"lastSeen": now, "online": true},
 	}
+
 	// TODO: use config to set values
-	result, err := db.GetDocumentWithUpdate(ctx, "dungeondb", "users", bson.M{"name": username, "password": database.GetMD5Hash(password)}, update)
+	result, err := db.GetDocumentWithUpdate(ctx, "dungeondb", "users", bson.M{"username": username, "password": database.GetMD5Hash(password)}, update)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +120,7 @@ func GetUser(ctx context.Context, db *database.MongoDB, username, password strin
 func RegisterUser(ctx context.Context, db *database.MongoDB, email, username, pass string) (*User, error) {
 
 	logger := logging.NewLogger()
-	conf := config.NewIConfig()
+	conf := config.NewIConfig(true)
 
 	logger.LogInfo("entities.RegisterUser()")
 

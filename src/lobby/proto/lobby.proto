@@ -11,10 +11,22 @@ service Lobby {
     rpc RefreshToken(TokenRequest) returns (LoginResponse);
     rpc JoinLobby(TokenRequest) returns (JoinResponse);
     rpc LeaveLobby(TokenRequest) returns (LeaveResponse);
-    rpc SendMessage(ChatMessage) returns (MessageResponse);
     rpc GetUsers(TokenRequest) returns (UserListResponse);
-    rpc Matchmaking(TokenRequest) returns (MatchmakingResponse);
+    rpc Register(NewUserMessage) returns (LoginResponse);
     rpc Roll(RollRequest) returns (RollResponse);
+}
+
+message BaseResponse {
+    int64 responseCode = 1;
+    int64 apiVersion = 2;
+    optional string errorMsg = 3;
+}
+
+message RegisterRequest {
+    string username = 1;
+    string password = 2;
+    string displayname = 3;
+    string email = 4;
 }
 
 message RollRequest {
@@ -32,19 +44,8 @@ message UserLoginRequest {
     string password = 2;
 }
 
-message BaseResponse {
-    int64 responseCode = 1;
-    int64 apiVersion = 2;
-    optional string errorMsg = 3;
-}
-
 message TokenRequest {
     string token = 1;
-}
-
-message ChatMessage {
-    string token = 1;
-    string message = 2;
 }
 
 message LobbyInfo {
@@ -52,13 +53,33 @@ message LobbyInfo {
     int64 usersOnline = 2;
 }
 
+message NewUserMessage {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message UserEntry {
+    string id = 1;
+    string displayname = 2;
+    optional string email = 3;
+    optional bool isOnline = 4;
+    optional bool isValidated = 5;
+    optional string image = 6; 
+}
+
+message TokenResponse {
+    string accessToken = 1;
+    int64 accessTokenExpiresIn = 2; // Validity period in seconds
+    optional string refreshToken = 3;
+    optional int64 refreshTokenExpiresIn = 4; // Validity period in seconds
+}
+
 // Response to a login request including tokens and their validity
 message LoginResponse {
     BaseResponse response = 1;
-    optional string accessToken = 2;
-    optional int64 accessTokenExpiresIn = 3; // Validity period in seconds
-    optional string refreshToken = 4;
-    optional int64 refreshTokenExpiresIn = 5; // Validity period in seconds
+    optional TokenResponse tokens = 2;
+    optional UserEntry user = 3;
 }
 
 message JoinResponse {
@@ -72,25 +93,7 @@ message LeaveResponse {
     optional string message = 2;
 }
 
-message MessageResponse {
-    BaseResponse response = 1;
-    string message = 2;
-}
-
-message UserEntry {
-    string id = 1;
-    string displayname = 2;
-}
-
 message UserListResponse {
     BaseResponse response = 1;
     repeated UserEntry users = 2;
-}
-
-message MatchmakingResponse {
-    BaseResponse response = 1;
-    optional UserEntry users = 2;
-    optional string gameServerId = 3;
-    optional string gameServerIp = 4;
-    optional string secret = 5;
 }
