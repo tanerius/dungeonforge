@@ -34,7 +34,22 @@ services:
       ME_CONFIG_MONGODB_ADMINPASSWORD: m123123123
       ME_CONFIG_MONGODB_SERVER: mongo
       ME_CONFIG_MONGODB_URL: mongodb://dungeonmaster:m123123123@mongo:27017/
+  redis:
+    image: redis:7.4.0-alpine
+    restart: on-failure
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/root/redis
+      - ./init-script/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=redispassword
+      - REDIS_PORT=6379
+      - REDIS_DATABASES=4
+
 volumes:
+  redis-data:
+    driver: local
   mongodb-data:
     driver: local
   mongodb-log:

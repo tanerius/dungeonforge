@@ -74,6 +74,12 @@ func (s *mockConfig) ReadConfig(path, file string) error {
 
 func (s *mockConfig) ReadKey(key string) (interface{}, error) {
 	switch key {
+	case "redis_host":
+		return "redis", nil
+	case "redis_pass":
+		return "redispassword", nil
+	case "redis_port":
+		return 6379, nil
 	case "host":
 		return "mongo", nil
 	case "db":

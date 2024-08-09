@@ -13,6 +13,11 @@ import (
 	"github.com/tanerius/dungeonforge/src/entities"
 )
 
+// A funtion to get a ponter representation of a value
+func ptrRep[T comparable](val T) *T {
+	return &val
+}
+
 func buildLoginResponse(tokens *tokenmanager.Tokens, user *entities.User) *LoginResponse {
 
 	return &LoginResponse{
@@ -23,15 +28,15 @@ func buildLoginResponse(tokens *tokenmanager.Tokens, user *entities.User) *Login
 		Tokens: &TokenResponse{
 			AccessToken:           tokens.Access,
 			AccessTokenExpiresIn:  tokens.AccessExires,
-			RefreshToken:          &tokens.Refresh,
-			RefreshTokenExpiresIn: &tokens.RefreshExpires,
+			RefreshToken:          ptrRep(tokens.Refresh),
+			RefreshTokenExpiresIn: ptrRep(tokens.RefreshExpires),
 		},
 		User: &UserEntry{
 			Id:          user.GetId(),
 			Displayname: user.DisplayName,
-			Email:       &user.Email,
-			IsOnline:    &user.IsOnline,
-			IsValidated: &user.Validated,
+			Email:       ptrRep(user.Email),
+			IsOnline:    ptrRep(user.IsOnline),
+			IsValidated: ptrRep(user.Validated),
 		},
 	}
 }
