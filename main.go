@@ -5,7 +5,7 @@ import (
 	"net"
 
 	"github.com/tanerius/dungeonforge/pkg/logging"
-	"github.com/tanerius/dungeonforge/src/lobby"
+	lobby "github.com/tanerius/dungeonforge/src/grpc_lobby"
 	"google.golang.org/grpc"
 )
 

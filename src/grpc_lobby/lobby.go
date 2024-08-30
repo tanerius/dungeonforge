@@ -65,6 +65,8 @@ func NewMockedLobby(logger logging.ILogger) *LobbyServerNode {
 		l.db = db
 		logger.LogInfo("Lobby ready!")
 		return l
+	} else {
+		logger.LogError(err, "Error setting up DB")
 	}
 
 	return nil
