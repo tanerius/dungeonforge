@@ -10,3 +10,7 @@ type Entity interface {
 type EntityWriter interface {
 	Write(context.Context) error
 }
+
+type LobbyService interface {
+	GetId() string
+}

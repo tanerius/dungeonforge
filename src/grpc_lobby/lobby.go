@@ -65,8 +65,6 @@ func NewMockedLobby(logger logging.ILogger) *LobbyServerNode {
 		l.db = db
 		logger.LogInfo("Lobby ready!")
 		return l
-	} else {
-		logger.LogError(err, "Error setting up DB")
 	}
 
 	return nil
@@ -87,6 +85,10 @@ func NewLobby(logger logging.ILogger) *LobbyServerNode {
 	}
 
 	return nil
+}
+
+func (r *LobbyServerNode) GetId() string {
+	return r.id
 }
 
 func (r *LobbyServerNode) GetUsers(ctx context.Context, token *TokenRequest) (*UserListResponse, error) {
