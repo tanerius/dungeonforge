@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func main() {
+func RunGRPCLobby() {
 	log := logging.NewLogger()
 	log.LogInfo("Starting a lobby")
 	service := lobby.NewMockedLobby(log)
@@ -35,4 +35,12 @@ func main() {
 		log.LogError(serverError, "")
 		return
 	}
+}
+
+func RunJRPCLobby() {
+
+}
+
+func main() {
+	go RunGRPCLobby()
 }

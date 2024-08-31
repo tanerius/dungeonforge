@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/tanerius/dungeonforge/pkg/config"
@@ -136,9 +138,39 @@ func (s *JsonRpcService) handleRPCRequest(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (s *JsonRpcService) Run(port string) {
-	http.HandleFunc("/rpc", s.handleRPCRequest)
-	fmt.Println("JSON-RPC server listening on port 8080...")
-	s.logger.LogInfo("JSON-RPC server listening on port  " + port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+// Good to use "/rpc" as endpoint
+func (s *JsonRpcService) Run(endpoint, port string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc(endpoint, s.handleRPCRequest)
+
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
+	}
+
+	// Channel to listen for interrupt or termination signals.
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt)
+
+	// Run the server in a goroutine so that it doesn't block.
+	go func() {
+		s.logger.LogInfo("JSON-RPC server listening on port  " + port)
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.logger.LogError(err, "Could not listen on port  "+port)
+		}
+	}()
+
+	// Wait for an interrupt signal.
+	<-stop
+
+	// Gracefully shutdown the server with a timeout of 5 seconds.
+	s.logger.LogInfo("Shutting down the server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		s.logger.LogError(err, "Server foced to shutdown")
+	}
+
+	s.logger.LogInfo("Server exiting")
 }
