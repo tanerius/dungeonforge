@@ -11,6 +11,14 @@ type EntityWriter interface {
 	Write(context.Context) error
 }
 
-type LobbyService interface {
+type LobbyServiceController interface {
 	GetId() string
+	// What type of lobby grpc of jsonrpc
+	GetType() string
+	// This function is called when a lobby should be started. True if started
+	Start() bool
+	// This function is called when a lobby should be started.
+	Stop()
+	// Get status of the LobbyService
+	Status() string
 }
